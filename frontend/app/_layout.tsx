@@ -37,10 +37,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="accessories"
+        options={{
+          title: 'Accessories',
+          headerTitle: 'Accessories',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="briefcase" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="add"
         options={{
           title: 'Add',
-          headerTitle: 'Add Camera',
+          headerTitle: 'Add Item',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="add-circle" size={size} color={color} />
           ),
@@ -60,6 +70,13 @@ export default function TabLayout() {
           headerTitle: 'Wishlist Item',
         }}
       />
+      <Tabs.Screen
+        name="accessory/[id]"
+        options={{
+          href: null,
+          headerTitle: 'Accessory Details',
+        }}
+      />
     </Tabs>
   );
 }
@@ -74,7 +91,7 @@ const styles = StyleSheet.create({
     height: Platform.OS === 'ios' ? 85 : 65,
   },
   tabBarLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   header: {

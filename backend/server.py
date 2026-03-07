@@ -31,45 +31,97 @@ CAMERA_TYPES = [
     "Film - Medium Format",
     "Film - Large Format",
     "Digital",
-    "Video",
+    "Video/Movie Camera",
     "Instant - Polaroid",
     "Instant - Instax",
-    "Manual/Mechanical"
+    "Manual/Mechanical",
+    "Single Use/Disposable",
+    "Box Camera",
+    "Folding Camera",
+    "TLR (Twin Lens Reflex)",
+    "SLR (Single Lens Reflex)",
+    "Rangefinder",
+    "Point & Shoot",
+    "Other"
 ]
 
-# Film Formats
+# Film Formats - Based on TheDarkroom.com and motion picture formats
 FILM_FORMATS = [
-    # Common
-    "35mm",
+    # Still Photography - Common
+    "35mm (135 Film)",
     "120 (Medium Format)",
-    "110",
+    "220 (Medium Format)",
+    "620 (Medium Format)",
+    "110 Film Cartridge",
+    "126 Film Cartridge",
+    "127 Film (Vest Pocket)",
+    "APS (Advanced Photo System/Advantix)",
+    
+    # Still Photography - Large Format Sheet Film
+    "4x5 Sheet Film",
+    "5x7 Sheet Film",
+    "8x10 Sheet Film",
+    "11x14 Sheet Film",
+    
+    # Still Photography - Discontinued/Rare
+    "116 Film",
+    "616 Film",
+    "828 Film",
+    "Disc Film",
+    "Minox (Subminiature)",
+    "Half Frame 35mm",
+    "122 Film",
+    
+    # Instant Film
     "Instant - Polaroid 600",
     "Instant - Polaroid SX-70",
     "Instant - Polaroid i-Type",
+    "Instant - Polaroid Spectra",
+    "Instant - Polaroid Pack Film",
     "Instant - Instax Mini",
     "Instant - Instax Wide",
     "Instant - Instax Square",
-    # Extended
-    "127",
-    "126",
-    "APS (Advanced Photo System)",
-    "220",
-    "4x5 Sheet",
-    "8x10 Sheet",
-    # Movie/Video
-    "8mm",
+    "Instant - Fuji FP-100C",
+    
+    # Motion Picture / Movie Film
+    "Standard 8mm",
     "Super 8",
+    "Single 8",
     "16mm",
-    # Uncommon/Discontinued
-    "Disc Film",
-    "828",
-    "620",
-    "116",
-    "616",
-    "122",
-    "Minox",
-    "Half Frame 35mm",
+    "Super 16",
+    "35mm Motion Picture",
+    "65mm/70mm",
+    "IMAX",
+    "VistaVision",
+    
+    # Digital/Other
     "N/A (Digital)",
+    "Other"
+]
+
+# Accessory Categories
+ACCESSORY_TYPES = [
+    "Lens",
+    "Filter",
+    "Flash/Strobe",
+    "Light Meter",
+    "Tripod/Monopod",
+    "Camera Bag/Case",
+    "Strap",
+    "Battery Grip",
+    "Viewfinder",
+    "Film Back",
+    "Lens Hood",
+    "Cable Release",
+    "Light/Lighting",
+    "Reflector",
+    "Diffuser",
+    "Memory Card",
+    "Battery",
+    "Charger",
+    "Cleaning Kit",
+    "Film Scanner",
+    "Darkroom Equipment",
     "Other"
 ]
 
@@ -128,6 +180,33 @@ class WishlistItem(WishlistItemBase):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+# Accessory Models
+class AccessoryBase(BaseModel):
+    name: str
+    brand: str
+    accessory_type: str
+    compatible_with: Optional[str] = None  # e.g., "Canon EOS", "Nikon F-Mount"
+    year: Optional[str] = None
+    notes: Optional[str] = None
+    image: Optional[str] = None
+
+class AccessoryCreate(AccessoryBase):
+    pass
+
+class AccessoryUpdate(BaseModel):
+    name: Optional[str] = None
+    brand: Optional[str] = None
+    accessory_type: Optional[str] = None
+    compatible_with: Optional[str] = None
+    year: Optional[str] = None
+    notes: Optional[str] = None
+    image: Optional[str] = None
+
+class Accessory(AccessoryBase):
+    id: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 # Helper function to convert MongoDB document to dict
 def camera_helper(camera) -> dict:
     return {
@@ -158,17 +237,32 @@ def wishlist_helper(item) -> dict:
         "updated_at": item.get("updated_at", datetime.utcnow())
     }
 
+def accessory_helper(accessory) -> dict:
+    return {
+        "id": str(accessory["_id"]),
+        "name": accessory["name"],
+        "brand": accessory["brand"],
+        "accessory_type": accessory["accessory_type"],
+        "compatible_with": accessory.get("compatible_with"),
+        "year": accessory.get("year"),
+        "notes": accessory.get("notes"),
+        "image": accessory.get("image"),
+        "created_at": accessory.get("created_at", datetime.utcnow()),
+        "updated_at": accessory.get("updated_at", datetime.utcnow())
+    }
+
 # Root endpoint
 @api_router.get("/")
 async def root():
     return {"message": "Vintage Camera Collection API"}
 
-# Get options (camera types and film formats)
+# Get options (camera types, film formats, and accessory types)
 @api_router.get("/options")
 async def get_options():
     return {
         "camera_types": CAMERA_TYPES,
-        "film_formats": FILM_FORMATS
+        "film_formats": FILM_FORMATS,
+        "accessory_types": ACCESSORY_TYPES
     }
 
 # ============ COLLECTION ENDPOINTS ============
@@ -329,6 +423,71 @@ async def move_to_collection(item_id: str):
         
         new_camera = await db.cameras.find_one({"_id": result.inserted_id})
         return camera_helper(new_camera)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ============ ACCESSORIES ENDPOINTS ============
+
+@api_router.get("/accessories", response_model=List[Accessory])
+async def get_all_accessories():
+    accessories = []
+    async for accessory in db.accessories.find().sort("created_at", -1):
+        accessories.append(accessory_helper(accessory))
+    return accessories
+
+@api_router.get("/accessories/{accessory_id}", response_model=Accessory)
+async def get_accessory(accessory_id: str):
+    try:
+        accessory = await db.accessories.find_one({"_id": ObjectId(accessory_id)})
+        if accessory:
+            return accessory_helper(accessory)
+        raise HTTPException(status_code=404, detail="Accessory not found")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/accessories", response_model=Accessory)
+async def create_accessory(accessory: AccessoryCreate):
+    accessory_dict = accessory.dict()
+    accessory_dict["created_at"] = datetime.utcnow()
+    accessory_dict["updated_at"] = datetime.utcnow()
+    result = await db.accessories.insert_one(accessory_dict)
+    new_accessory = await db.accessories.find_one({"_id": result.inserted_id})
+    return accessory_helper(new_accessory)
+
+@api_router.put("/accessories/{accessory_id}", response_model=Accessory)
+async def update_accessory(accessory_id: str, accessory_update: AccessoryUpdate):
+    try:
+        update_data = {k: v for k, v in accessory_update.dict().items() if v is not None}
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No data to update")
+        
+        update_data["updated_at"] = datetime.utcnow()
+        result = await db.accessories.update_one(
+            {"_id": ObjectId(accessory_id)},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            existing = await db.accessories.find_one({"_id": ObjectId(accessory_id)})
+            if not existing:
+                raise HTTPException(status_code=404, detail="Accessory not found")
+        
+        updated_accessory = await db.accessories.find_one({"_id": ObjectId(accessory_id)})
+        return accessory_helper(updated_accessory)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.delete("/accessories/{accessory_id}")
+async def delete_accessory(accessory_id: str):
+    try:
+        result = await db.accessories.delete_one({"_id": ObjectId(accessory_id)})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Accessory not found")
+        return {"message": "Accessory deleted successfully"}
     except HTTPException:
         raise
     except Exception as e:

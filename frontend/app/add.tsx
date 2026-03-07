@@ -21,29 +21,41 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 interface Options {
   camera_types: string[];
   film_formats: string[];
+  accessory_types: string[];
 }
+
+type ItemMode = 'collection' | 'wishlist' | 'accessory';
 
 export default function AddCameraScreen() {
   const router = useRouter();
   const [options, setOptions] = useState<Options>({
     camera_types: [],
     film_formats: [],
+    accessory_types: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isWishlist, setIsWishlist] = useState(false);
+  const [mode, setMode] = useState<ItemMode>('collection');
 
+  // Common fields
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
-  const [cameraType, setCameraType] = useState('');
-  const [filmFormat, setFilmFormat] = useState('');
   const [year, setYear] = useState('');
   const [notes, setNotes] = useState('');
   const [image, setImage] = useState<string | null>(null);
+
+  // Camera fields
+  const [cameraType, setCameraType] = useState('');
+  const [filmFormat, setFilmFormat] = useState('');
   const [priority, setPriority] = useState('medium');
+
+  // Accessory fields
+  const [accessoryType, setAccessoryType] = useState('');
+  const [compatibleWith, setCompatibleWith] = useState('');
 
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [showFormatSelector, setShowFormatSelector] = useState(false);
+  const [showAccessoryTypeSelector, setShowAccessoryTypeSelector] = useState(false);
 
   useEffect(() => {
     fetchOptions();
@@ -61,6 +73,19 @@ export default function AddCameraScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setName('');
+    setBrand('');
+    setYear('');
+    setNotes('');
+    setImage(null);
+    setCameraType('');
+    setFilmFormat('');
+    setPriority('medium');
+    setAccessoryType('');
+    setCompatibleWith('');
   };
 
   const pickImage = async () => {
@@ -111,26 +136,58 @@ export default function AddCameraScreen() {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || !brand.trim() || !cameraType || !filmFormat) {
-      Alert.alert('Missing Information', 'Please fill in all required fields');
-      return;
+    // Validate based on mode
+    if (mode === 'accessory') {
+      if (!name.trim() || !brand.trim() || !accessoryType) {
+        Alert.alert('Missing Information', 'Please fill in all required fields');
+        return;
+      }
+    } else {
+      if (!name.trim() || !brand.trim() || !cameraType || !filmFormat) {
+        Alert.alert('Missing Information', 'Please fill in all required fields');
+        return;
+      }
     }
 
     setSaving(true);
 
-    const endpoint = isWishlist ? '/api/wishlist' : '/api/cameras';
-    const body: any = {
-      name: name.trim(),
-      brand: brand.trim(),
-      camera_type: cameraType,
-      film_format: filmFormat,
-      year: year.trim() || null,
-      notes: notes.trim() || null,
-      image: image,
-    };
+    let endpoint = '';
+    let body: any = {};
 
-    if (isWishlist) {
-      body.priority = priority;
+    if (mode === 'accessory') {
+      endpoint = '/api/accessories';
+      body = {
+        name: name.trim(),
+        brand: brand.trim(),
+        accessory_type: accessoryType,
+        compatible_with: compatibleWith.trim() || null,
+        year: year.trim() || null,
+        notes: notes.trim() || null,
+        image: image,
+      };
+    } else if (mode === 'wishlist') {
+      endpoint = '/api/wishlist';
+      body = {
+        name: name.trim(),
+        brand: brand.trim(),
+        camera_type: cameraType,
+        film_format: filmFormat,
+        year: year.trim() || null,
+        notes: notes.trim() || null,
+        image: image,
+        priority: priority,
+      };
+    } else {
+      endpoint = '/api/cameras';
+      body = {
+        name: name.trim(),
+        brand: brand.trim(),
+        camera_type: cameraType,
+        film_format: filmFormat,
+        year: year.trim() || null,
+        notes: notes.trim() || null,
+        image: image,
+      };
     }
 
     try {
@@ -141,13 +198,17 @@ export default function AddCameraScreen() {
       });
 
       if (response.ok) {
-        Alert.alert(
-          'Success',
-          isWishlist
-            ? 'Added to your wishlist!'
-            : 'Camera added to your collection!',
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
+        const successMessage = 
+          mode === 'accessory' ? 'Accessory added!' :
+          mode === 'wishlist' ? 'Added to your wishlist!' :
+          'Camera added to your collection!';
+        
+        Alert.alert('Success', successMessage, [
+          { text: 'OK', onPress: () => {
+            resetForm();
+            router.back();
+          }}
+        ]);
       } else {
         Alert.alert('Error', 'Failed to save. Please try again.');
       }
@@ -177,24 +238,24 @@ export default function AddCameraScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Toggle Collection/Wishlist */}
+        {/* Mode Toggle */}
         <View style={styles.toggleContainer}>
           <TouchableOpacity
             style={[
               styles.toggleButton,
-              !isWishlist && styles.toggleButtonActive,
+              mode === 'collection' && styles.toggleButtonActive,
             ]}
-            onPress={() => setIsWishlist(false)}
+            onPress={() => { setMode('collection'); resetForm(); }}
           >
             <Ionicons
               name="camera"
-              size={20}
-              color={!isWishlist ? '#fff' : '#888'}
+              size={18}
+              color={mode === 'collection' ? '#fff' : '#888'}
             />
             <Text
               style={[
                 styles.toggleText,
-                !isWishlist && styles.toggleTextActive,
+                mode === 'collection' && styles.toggleTextActive,
               ]}
             >
               Collection
@@ -203,22 +264,43 @@ export default function AddCameraScreen() {
           <TouchableOpacity
             style={[
               styles.toggleButton,
-              isWishlist && styles.toggleButtonActive,
+              mode === 'wishlist' && styles.toggleButtonActive,
             ]}
-            onPress={() => setIsWishlist(true)}
+            onPress={() => { setMode('wishlist'); resetForm(); }}
           >
             <Ionicons
               name="heart"
-              size={20}
-              color={isWishlist ? '#fff' : '#888'}
+              size={18}
+              color={mode === 'wishlist' ? '#fff' : '#888'}
             />
             <Text
               style={[
                 styles.toggleText,
-                isWishlist && styles.toggleTextActive,
+                mode === 'wishlist' && styles.toggleTextActive,
               ]}
             >
               Wishlist
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              mode === 'accessory' && styles.toggleButtonActive,
+            ]}
+            onPress={() => { setMode('accessory'); resetForm(); }}
+          >
+            <Ionicons
+              name="briefcase"
+              size={18}
+              color={mode === 'accessory' ? '#fff' : '#888'}
+            />
+            <Text
+              style={[
+                styles.toggleText,
+                mode === 'accessory' && styles.toggleTextActive,
+              ]}
+            >
+              Accessory
             </Text>
           </TouchableOpacity>
         </View>
@@ -229,7 +311,11 @@ export default function AddCameraScreen() {
             <Image source={{ uri: image }} style={styles.previewImage} />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="camera-outline" size={48} color="#666" />
+              <Ionicons 
+                name={mode === 'accessory' ? 'briefcase-outline' : 'camera-outline'} 
+                size={48} 
+                color="#666" 
+              />
               <Text style={styles.imagePlaceholderText}>Add Photo</Text>
             </View>
           )}
@@ -246,10 +332,12 @@ export default function AddCameraScreen() {
         {/* Form Fields */}
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Camera Name *</Text>
+            <Text style={styles.label}>
+              {mode === 'accessory' ? 'Accessory Name *' : 'Camera Name *'}
+            </Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g., Leica M3"
+              placeholder={mode === 'accessory' ? 'e.g., Summicron 50mm f/2' : 'e.g., Leica M3'}
               placeholderTextColor="#666"
               value={name}
               onChangeText={setName}
@@ -267,101 +355,168 @@ export default function AddCameraScreen() {
             />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Camera Type *</Text>
-            <TouchableOpacity
-              style={styles.selector}
-              onPress={() => setShowTypeSelector(!showTypeSelector)}
-            >
-              <Text
-                style={[
-                  styles.selectorText,
-                  !cameraType && styles.selectorPlaceholder,
-                ]}
+          {mode === 'accessory' ? (
+            // Accessory Type Selector
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Accessory Type *</Text>
+              <TouchableOpacity
+                style={styles.selector}
+                onPress={() => setShowAccessoryTypeSelector(!showAccessoryTypeSelector)}
               >
-                {cameraType || 'Select camera type'}
-              </Text>
-              <Ionicons
-                name={showTypeSelector ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color="#888"
-              />
-            </TouchableOpacity>
-            {showTypeSelector && (
-              <View style={styles.optionsList}>
-                {options.camera_types.map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.optionItem,
-                      cameraType === type && styles.optionItemSelected,
-                    ]}
-                    onPress={() => {
-                      setCameraType(type);
-                      setShowTypeSelector(false);
-                    }}
-                  >
-                    <Text
+                <Text
+                  style={[
+                    styles.selectorText,
+                    !accessoryType && styles.selectorPlaceholder,
+                  ]}
+                >
+                  {accessoryType || 'Select accessory type'}
+                </Text>
+                <Ionicons
+                  name={showAccessoryTypeSelector ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color="#888"
+                />
+              </TouchableOpacity>
+              {showAccessoryTypeSelector && (
+                <ScrollView style={styles.optionsList} nestedScrollEnabled>
+                  {options.accessory_types.map((type) => (
+                    <TouchableOpacity
+                      key={type}
                       style={[
-                        styles.optionText,
-                        cameraType === type && styles.optionTextSelected,
+                        styles.optionItem,
+                        accessoryType === type && styles.optionItemSelected,
                       ]}
+                      onPress={() => {
+                        setAccessoryType(type);
+                        setShowAccessoryTypeSelector(false);
+                      }}
                     >
-                      {type}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.optionText,
+                          accessoryType === type && styles.optionTextSelected,
+                        ]}
+                      >
+                        {type}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          ) : (
+            // Camera Type & Film Format
+            <>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Camera Type *</Text>
+                <TouchableOpacity
+                  style={styles.selector}
+                  onPress={() => setShowTypeSelector(!showTypeSelector)}
+                >
+                  <Text
+                    style={[
+                      styles.selectorText,
+                      !cameraType && styles.selectorPlaceholder,
+                    ]}
+                  >
+                    {cameraType || 'Select camera type'}
+                  </Text>
+                  <Ionicons
+                    name={showTypeSelector ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color="#888"
+                  />
+                </TouchableOpacity>
+                {showTypeSelector && (
+                  <ScrollView style={styles.optionsList} nestedScrollEnabled>
+                    {options.camera_types.map((type) => (
+                      <TouchableOpacity
+                        key={type}
+                        style={[
+                          styles.optionItem,
+                          cameraType === type && styles.optionItemSelected,
+                        ]}
+                        onPress={() => {
+                          setCameraType(type);
+                          setShowTypeSelector(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.optionText,
+                            cameraType === type && styles.optionTextSelected,
+                          ]}
+                        >
+                          {type}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
               </View>
-            )}
-          </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Film Format *</Text>
-            <TouchableOpacity
-              style={styles.selector}
-              onPress={() => setShowFormatSelector(!showFormatSelector)}
-            >
-              <Text
-                style={[
-                  styles.selectorText,
-                  !filmFormat && styles.selectorPlaceholder,
-                ]}
-              >
-                {filmFormat || 'Select film format'}
-              </Text>
-              <Ionicons
-                name={showFormatSelector ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color="#888"
-              />
-            </TouchableOpacity>
-            {showFormatSelector && (
-              <View style={styles.optionsList}>
-                {options.film_formats.map((format) => (
-                  <TouchableOpacity
-                    key={format}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Film Format *</Text>
+                <TouchableOpacity
+                  style={styles.selector}
+                  onPress={() => setShowFormatSelector(!showFormatSelector)}
+                >
+                  <Text
                     style={[
-                      styles.optionItem,
-                      filmFormat === format && styles.optionItemSelected,
+                      styles.selectorText,
+                      !filmFormat && styles.selectorPlaceholder,
                     ]}
-                    onPress={() => {
-                      setFilmFormat(format);
-                      setShowFormatSelector(false);
-                    }}
                   >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        filmFormat === format && styles.optionTextSelected,
-                      ]}
-                    >
-                      {format}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                    {filmFormat || 'Select film format'}
+                  </Text>
+                  <Ionicons
+                    name={showFormatSelector ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color="#888"
+                  />
+                </TouchableOpacity>
+                {showFormatSelector && (
+                  <ScrollView style={styles.optionsList} nestedScrollEnabled>
+                    {options.film_formats.map((format) => (
+                      <TouchableOpacity
+                        key={format}
+                        style={[
+                          styles.optionItem,
+                          filmFormat === format && styles.optionItemSelected,
+                        ]}
+                        onPress={() => {
+                          setFilmFormat(format);
+                          setShowFormatSelector(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.optionText,
+                            filmFormat === format && styles.optionTextSelected,
+                          ]}
+                        >
+                          {format}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
               </View>
-            )}
-          </View>
+            </>
+          )}
+
+          {mode === 'accessory' && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Compatible With</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., Canon EOS, Nikon F-Mount, Universal"
+                placeholderTextColor="#666"
+                value={compatibleWith}
+                onChangeText={setCompatibleWith}
+              />
+            </View>
+          )}
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Year/Era</Text>
@@ -374,7 +529,7 @@ export default function AddCameraScreen() {
             />
           </View>
 
-          {isWishlist && (
+          {mode === 'wishlist' && (
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Priority</Text>
               <View style={styles.priorityContainer}>
@@ -413,7 +568,9 @@ export default function AddCameraScreen() {
             <Text style={styles.label}>Notes</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Add any notes about this camera..."
+              placeholder={mode === 'accessory' 
+                ? 'Add any notes about this accessory...' 
+                : 'Add any notes about this camera...'}
               placeholderTextColor="#666"
               value={notes}
               onChangeText={setNotes}
@@ -435,12 +592,16 @@ export default function AddCameraScreen() {
           ) : (
             <>
               <Ionicons
-                name={isWishlist ? 'heart' : 'camera'}
+                name={
+                  mode === 'accessory' ? 'briefcase' :
+                  mode === 'wishlist' ? 'heart' : 'camera'
+                }
                 size={20}
                 color="#fff"
               />
               <Text style={styles.saveButtonText}>
-                {isWishlist ? 'Add to Wishlist' : 'Add to Collection'}
+                {mode === 'accessory' ? 'Add Accessory' :
+                 mode === 'wishlist' ? 'Add to Wishlist' : 'Add to Collection'}
               </Text>
             </>
           )}
@@ -478,7 +639,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 10,
   },
   toggleButtonActive: {
@@ -486,16 +647,16 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     color: '#888',
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   toggleTextActive: {
     color: '#fff',
   },
   imagePicker: {
     marginHorizontal: 16,
-    height: 200,
+    height: 180,
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#1E1E1E',
