@@ -92,8 +92,8 @@ interface ThemeContextType {
   theme: Theme;
   themeName: ThemeName;
   setThemeName: (name: ThemeName) => void;
-  appIcon: 'flash' | 'tlr';
-  setAppIcon: (icon: 'flash' | 'tlr') => void;
+  appIcon: 'pink' | 'blue' | 'brown' | 'dark';
+  setAppIcon: (icon: 'pink' | 'blue' | 'brown' | 'dark') => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -103,7 +103,7 @@ const ICON_STORAGE_KEY = '@vintage_camera_icon';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeName, setThemeNameState] = useState<ThemeName>('dark');
-  const [appIcon, setAppIconState] = useState<'flash' | 'tlr'>('flash');
+  const [appIcon, setAppIconState] = useState<'pink' | 'blue' | 'brown' | 'dark'>('dark');
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load saved preferences on mount
@@ -116,7 +116,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (savedTheme && savedTheme in themes) {
           setThemeNameState(savedTheme as ThemeName);
         }
-        if (savedIcon === 'flash' || savedIcon === 'tlr') {
+        if (savedIcon === 'pink' || savedIcon === 'blue' || savedIcon === 'brown' || savedIcon === 'dark') {
           setAppIconState(savedIcon);
         }
       } catch (error) {
@@ -137,7 +137,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const setAppIcon = async (icon: 'flash' | 'tlr') => {
+  const setAppIcon = async (icon: 'pink' | 'blue' | 'brown' | 'dark') => {
     setAppIconState(icon);
     try {
       await AsyncStorage.setItem(ICON_STORAGE_KEY, icon);

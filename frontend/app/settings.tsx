@@ -10,8 +10,19 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, themes, ThemeName } from '../contexts/ThemeContext';
 
-const iconFlash = require('../assets/images/icon-flash.png');
-const iconTlr = require('../assets/images/icon-tlr.png');
+const iconPink = require('../assets/images/icon-pink.jpg');
+const iconBlue = require('../assets/images/icon-blue.jpg');
+const iconBrown = require('../assets/images/icon-brown.jpg');
+const iconDark = require('../assets/images/icon-dark.jpg');
+
+type IconKey = 'pink' | 'blue' | 'brown' | 'dark';
+
+const iconOptions: { key: IconKey; label: string; image: any }[] = [
+  { key: 'pink', label: 'Blush', image: iconPink },
+  { key: 'blue', label: 'Sky', image: iconBlue },
+  { key: 'brown', label: 'Sepia', image: iconBrown },
+  { key: 'dark', label: 'Slate', image: iconDark },
+];
 
 export default function SettingsScreen() {
   const { theme, themeName, setThemeName, appIcon, setAppIcon } = useTheme();
@@ -38,40 +49,26 @@ export default function SettingsScreen() {
           Choose your preferred app icon style
         </Text>
         
-        <View style={styles.iconOptions}>
-          <TouchableOpacity
-            style={[
-              styles.iconOption,
-              { backgroundColor: theme.surfaceLight },
-              appIcon === 'flash' && { borderColor: theme.primary, borderWidth: 3 },
-            ]}
-            onPress={() => setAppIcon('flash')}
-          >
-            <Image source={iconFlash} style={styles.iconImage} />
-            <Text style={[styles.iconLabel, { color: theme.text }]}>Flash Camera</Text>
-            {appIcon === 'flash' && (
-              <View style={[styles.selectedBadge, { backgroundColor: theme.primary }]}>
-                <Ionicons name="checkmark" size={14} color="#fff" />
-              </View>
-            )}
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.iconOption,
-              { backgroundColor: theme.surfaceLight },
-              appIcon === 'tlr' && { borderColor: theme.primary, borderWidth: 3 },
-            ]}
-            onPress={() => setAppIcon('tlr')}
-          >
-            <Image source={iconTlr} style={styles.iconImage} />
-            <Text style={[styles.iconLabel, { color: theme.text }]}>TLR Camera</Text>
-            {appIcon === 'tlr' && (
-              <View style={[styles.selectedBadge, { backgroundColor: theme.primary }]}>
-                <Ionicons name="checkmark" size={14} color="#fff" />
-              </View>
-            )}
-          </TouchableOpacity>
+        <View style={styles.iconGrid}>
+          {iconOptions.map((option) => (
+            <TouchableOpacity
+              key={option.key}
+              style={[
+                styles.iconOption,
+                { backgroundColor: theme.surfaceLight },
+                appIcon === option.key && { borderColor: theme.primary, borderWidth: 3 },
+              ]}
+              onPress={() => setAppIcon(option.key)}
+            >
+              <Image source={option.image} style={styles.iconImage} />
+              <Text style={[styles.iconLabel, { color: theme.text }]}>{option.label}</Text>
+              {appIcon === option.key && (
+                <View style={[styles.selectedBadge, { backgroundColor: theme.primary }]}>
+                  <Ionicons name="checkmark" size={12} color="#fff" />
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -177,22 +174,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 20,
   },
-  iconOptions: {
+  iconGrid: {
     flexDirection: 'row',
-    gap: 16,
+    flexWrap: 'wrap',
+    gap: 12,
   },
   iconOption: {
-    flex: 1,
+    width: '47%',
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     position: 'relative',
   },
   iconImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    marginBottom: 12,
+    width: 70,
+    height: 70,
+    borderRadius: 14,
+    marginBottom: 8,
   },
   iconLabel: {
     fontSize: 13,
@@ -202,9 +200,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
   },
