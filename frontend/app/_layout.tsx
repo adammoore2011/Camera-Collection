@@ -88,8 +88,11 @@ function TabLayoutContent() {
       <Tabs.Screen
         name="add"
         options={{
-          href: null,
+          title: 'Add',
           headerTitle: 'Add Item',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="add-circle" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
