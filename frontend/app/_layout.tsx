@@ -2,18 +2,37 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Platform } from 'react-native';
+import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 
-export default function TabLayout() {
+function TabLayoutContent() {
+  const { theme } = useTheme();
+  
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#D4A574',
-        tabBarInactiveTintColor: '#888',
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabBarLabel,
-        headerStyle: styles.header,
-        headerTitleStyle: styles.headerTitle,
-        headerTintColor: '#fff',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textSecondary,
+        tabBarStyle: {
+          backgroundColor: theme.tabBar,
+          borderTopColor: theme.border,
+          borderTopWidth: 1,
+          paddingTop: 5,
+          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
+          height: Platform.OS === 'ios' ? 85 : 65,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+        },
+        headerStyle: {
+          backgroundColor: theme.header,
+        },
+        headerTitleStyle: {
+          color: theme.text,
+          fontSize: 18,
+          fontWeight: 'bold',
+        },
+        headerTintColor: theme.text,
       }}
     >
       <Tabs.Screen
@@ -39,7 +58,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="accessories"
         options={{
-          title: 'Accessories',
+          title: 'Gear',
           headerTitle: 'Accessories',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="briefcase" size={size} color={color} />
@@ -57,13 +76,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          headerTitle: 'Settings',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="add"
         options={{
-          title: 'Add',
+          href: null,
           headerTitle: 'Add Item',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size} color={color} />
-          ),
         }}
       />
       <Tabs.Screen
@@ -91,30 +117,10 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: '#1A1A1A',
-    borderTopColor: '#333',
-    borderTopWidth: 1,
-    paddingTop: 5,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-    height: Platform.OS === 'ios' ? 85 : 65,
-  },
-  tabBarLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  header: {
-    backgroundColor: '#1A1A1A',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-});
+export default function TabLayout() {
+  return (
+    <ThemeProvider>
+      <TabLayoutContent />
+    </ThemeProvider>
+  );
+}

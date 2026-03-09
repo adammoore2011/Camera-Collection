@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useTheme } from '../contexts/ThemeContext';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -54,6 +55,7 @@ const accessoryIcons: { [key: string]: string } = {
 };
 
 export default function AccessoriesScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,7 +127,7 @@ export default function AccessoriesScreen() {
 
   const renderAccessoryItem = ({ item }: { item: Accessory }) => (
     <TouchableOpacity
-      style={styles.accessoryCard}
+      style={[styles.accessoryCard, { backgroundColor: theme.surface }]}
       onPress={() => router.push(`/accessory/${item.id}`)}
       onLongPress={() => deleteAccessory(item.id)}
     >
@@ -133,73 +135,73 @@ export default function AccessoriesScreen() {
         {item.image ? (
           <Image source={{ uri: item.image }} style={styles.accessoryImage} />
         ) : (
-          <View style={styles.placeholderImage}>
-            <Ionicons name={getIconName(item.accessory_type) as any} size={36} color="#D4A574" />
+          <View style={[styles.placeholderImage, { backgroundColor: theme.surfaceLight }]}>
+            <Ionicons name={getIconName(item.accessory_type) as any} size={36} color={theme.primary} />
           </View>
         )}
       </View>
       <View style={styles.accessoryInfo}>
-        <Text style={styles.accessoryName}>{item.name}</Text>
-        <Text style={styles.accessoryBrand}>{item.brand}</Text>
+        <Text style={[styles.accessoryName, { color: theme.text }]}>{item.name}</Text>
+        <Text style={[styles.accessoryBrand, { color: theme.primary }]}>{item.brand}</Text>
         <View style={styles.tagContainer}>
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>{item.accessory_type}</Text>
+          <View style={[styles.tag, { backgroundColor: theme.surfaceLight }]}>
+            <Text style={[styles.tagText, { color: theme.textSecondary }]}>{item.accessory_type}</Text>
           </View>
           {item.year && (
-            <View style={[styles.tag, styles.yearTag]}>
-              <Text style={styles.tagText}>{item.year}</Text>
+            <View style={[styles.tag, { backgroundColor: theme.primary + '30' }]}>
+              <Text style={[styles.tagText, { color: theme.primary }]}>{item.year}</Text>
             </View>
           )}
         </View>
         {item.compatible_with && (
-          <Text style={styles.compatibleText}>For: {item.compatible_with}</Text>
+          <Text style={[styles.compatibleText, { color: theme.textSecondary }]}>For: {item.compatible_with}</Text>
         )}
       </View>
-      <Ionicons name="chevron-forward" size={24} color="#666" />
+      <Ionicons name="chevron-forward" size={24} color={theme.textMuted} />
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#D4A574" />
-        <Text style={styles.loadingText}>Loading accessories...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading accessories...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.searchContainer, { backgroundColor: theme.surface }]}>
+        <Ionicons name="search" size={20} color={theme.textSecondary} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.text }]}
           placeholder="Search accessories..."
-          placeholderTextColor="#666"
+          placeholderTextColor={theme.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color="#888" />
+            <Ionicons name="close-circle" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
 
       {filteredAccessories.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="briefcase-outline" size={80} color="#444" />
-          <Text style={styles.emptyTitle}>
+          <Ionicons name="briefcase-outline" size={80} color={theme.textMuted} />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
             {searchQuery ? 'No accessories found' : 'No accessories yet'}
           </Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
             {searchQuery
               ? 'Try a different search term'
               : 'Add lenses, bags, lights & more!'}
           </Text>
           {!searchQuery && (
             <TouchableOpacity
-              style={styles.addButton}
+              style={[styles.addButton, { backgroundColor: theme.primary }]}
               onPress={() => router.push('/add')}
             >
               <Ionicons name="add" size={24} color="#fff" />
@@ -217,15 +219,15 @@ export default function AccessoriesScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#D4A574"
+              tintColor={theme.primary}
             />
           }
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      <View style={styles.statsBar}>
-        <Text style={styles.statsText}>
+      <View style={[styles.statsBar, { backgroundColor: theme.tabBar, borderTopColor: theme.border }]}>
+        <Text style={[styles.statsText, { color: theme.textSecondary }]}>
           {filteredAccessories.length} accessor{filteredAccessories.length !== 1 ? 'ies' : 'y'}
         </Text>
       </View>
@@ -236,23 +238,19 @@ export default function AccessoriesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212',
   },
   loadingText: {
-    color: '#888',
     marginTop: 16,
     fontSize: 16,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E1E1E',
     margin: 16,
     borderRadius: 12,
     paddingHorizontal: 12,
@@ -263,7 +261,6 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
     fontSize: 16,
   },
   listContainer: {
@@ -273,7 +270,6 @@ const styles = StyleSheet.create({
   accessoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E1E1E',
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
@@ -292,7 +288,6 @@ const styles = StyleSheet.create({
   placeholderImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#2A2A2A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -301,12 +296,10 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   accessoryName: {
-    color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',
   },
   accessoryBrand: {
-    color: '#D4A574',
     fontSize: 13,
     marginTop: 2,
   },
@@ -316,22 +309,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   tag: {
-    backgroundColor: '#333',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     marginRight: 6,
     marginBottom: 4,
   },
-  yearTag: {
-    backgroundColor: '#4A3728',
-  },
   tagText: {
-    color: '#aaa',
     fontSize: 10,
   },
   compatibleText: {
-    color: '#888',
     fontSize: 11,
     marginTop: 4,
   },
@@ -342,13 +329,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyTitle: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
     marginTop: 16,
   },
   emptySubtitle: {
-    color: '#888',
     fontSize: 16,
     marginTop: 8,
     textAlign: 'center',
@@ -356,7 +341,6 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D4A574',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,
@@ -373,14 +357,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#1A1A1A',
     padding: 12,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#333',
   },
   statsText: {
-    color: '#888',
     fontSize: 14,
   },
 });

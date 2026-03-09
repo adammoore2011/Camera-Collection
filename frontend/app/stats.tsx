@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import { useTheme } from '../contexts/ThemeContext';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const screenWidth = Dimensions.get('window').width;
@@ -29,6 +30,7 @@ interface YearData {
 }
 
 export default function StatsScreen() {
+  const { theme } = useTheme();
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,7 +69,6 @@ export default function StatsScreen() {
       if (camera.year) {
         let yearKey = camera.year.trim();
         
-        // Try to extract a 4-digit year
         const yearMatch = yearKey.match(/(\d{4})/);
         if (yearMatch) {
           const year = parseInt(yearMatch[1]);
@@ -84,7 +85,6 @@ export default function StatsScreen() {
       }
     });
 
-    // Sort by decade
     const sortedKeys = Object.keys(yearCounts).sort((a, b) => {
       const aNum = parseInt(a.replace(/\D/g, '')) || 0;
       const bNum = parseInt(b.replace(/\D/g, '')) || 0;
@@ -97,7 +97,6 @@ export default function StatsScreen() {
     }));
   };
 
-  // Get camera type distribution
   const getCameraTypeStats = () => {
     const typeCounts: { [key: string]: number } = {};
     cameras.forEach((camera) => {
@@ -108,7 +107,6 @@ export default function StatsScreen() {
       .slice(0, 5);
   };
 
-  // Get brand distribution
   const getBrandStats = () => {
     const brandCounts: { [key: string]: number } = {};
     cameras.forEach((camera) => {
@@ -124,91 +122,90 @@ export default function StatsScreen() {
   const brandStats = getBrandStats();
   const maxYearCount = Math.max(...yearData.map(d => d.count), 1);
 
+  const barColors = [theme.primary, theme.primary + 'CC', theme.primary + '99', theme.primary + '77', theme.primary + '55', theme.primary + '44'];
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#D4A574" />
-        <Text style={styles.loadingText}>Loading statistics...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Loading statistics...</Text>
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#D4A574"
+          tintColor={theme.primary}
         />
       }
       showsVerticalScrollIndicator={false}
     >
       {/* Summary Card */}
-      <View style={styles.summaryCard}>
+      <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
         <View style={styles.summaryItem}>
-          <Ionicons name="camera" size={32} color="#D4A574" />
-          <Text style={styles.summaryNumber}>{cameras.length}</Text>
-          <Text style={styles.summaryLabel}>Total Cameras</Text>
+          <Ionicons name="camera" size={32} color={theme.primary} />
+          <Text style={[styles.summaryNumber, { color: theme.text }]}>{cameras.length}</Text>
+          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Total Cameras</Text>
         </View>
-        <View style={styles.summaryDivider} />
+        <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
         <View style={styles.summaryItem}>
-          <Ionicons name="calendar" size={32} color="#D4A574" />
-          <Text style={styles.summaryNumber}>{yearData.length}</Text>
-          <Text style={styles.summaryLabel}>Decades</Text>
+          <Ionicons name="calendar" size={32} color={theme.primary} />
+          <Text style={[styles.summaryNumber, { color: theme.text }]}>{yearData.length}</Text>
+          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Decades</Text>
         </View>
-        <View style={styles.summaryDivider} />
+        <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
         <View style={styles.summaryItem}>
-          <Ionicons name="business" size={32} color="#D4A574" />
-          <Text style={styles.summaryNumber}>{new Set(cameras.map(c => c.brand)).size}</Text>
-          <Text style={styles.summaryLabel}>Brands</Text>
+          <Ionicons name="business" size={32} color={theme.primary} />
+          <Text style={[styles.summaryNumber, { color: theme.text }]}>{new Set(cameras.map(c => c.brand)).size}</Text>
+          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Brands</Text>
         </View>
       </View>
 
       {/* Year Histogram */}
-      <View style={styles.chartCard}>
+      <View style={[styles.chartCard, { backgroundColor: theme.surface }]}>
         <View style={styles.chartHeader}>
-          <Ionicons name="bar-chart" size={24} color="#D4A574" />
-          <Text style={styles.chartTitle}>Cameras by Decade</Text>
+          <Ionicons name="bar-chart" size={24} color={theme.primary} />
+          <Text style={[styles.chartTitle, { color: theme.text }]}>Cameras by Decade</Text>
         </View>
         
         {yearData.length > 0 ? (
           <View style={styles.histogramContainer}>
-            {/* Y-axis labels */}
             <View style={styles.yAxis}>
               {[...Array(maxYearCount + 1)].map((_, i) => (
-                <Text key={i} style={styles.yAxisLabel}>
+                <Text key={i} style={[styles.yAxisLabel, { color: theme.textMuted }]}>
                   {maxYearCount - i}
                 </Text>
               ))}
             </View>
             
-            {/* Bars */}
             <View style={styles.barsContainer}>
               <View style={styles.gridLines}>
                 {[...Array(maxYearCount + 1)].map((_, i) => (
-                  <View key={i} style={styles.gridLine} />
+                  <View key={i} style={[styles.gridLine, { backgroundColor: theme.border }]} />
                 ))}
               </View>
               
               <View style={styles.bars}>
                 {yearData.map((item, index) => {
                   const barHeight = (item.count / maxYearCount) * 150;
-                  const colors = ['#D4A574', '#B8956E', '#A67C52', '#8B6914', '#CD853F', '#DEB887'];
                   return (
                     <View key={item.decade} style={styles.barWrapper}>
-                      <Text style={styles.barValue}>{item.count}</Text>
+                      <Text style={[styles.barValue, { color: theme.primary }]}>{item.count}</Text>
                       <View 
                         style={[
                           styles.bar, 
                           { 
                             height: barHeight,
-                            backgroundColor: colors[index % colors.length],
+                            backgroundColor: barColors[index % barColors.length],
                           }
                         ]} 
                       />
-                      <Text style={styles.barLabel}>{item.decade}</Text>
+                      <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{item.decade}</Text>
                     </View>
                   );
                 })}
@@ -217,76 +214,76 @@ export default function StatsScreen() {
           </View>
         ) : (
           <View style={styles.emptyChart}>
-            <Ionicons name="analytics-outline" size={48} color="#444" />
-            <Text style={styles.emptyText}>No year data available</Text>
-            <Text style={styles.emptySubtext}>Add years to your cameras to see the histogram</Text>
+            <Ionicons name="analytics-outline" size={48} color={theme.textMuted} />
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No year data available</Text>
+            <Text style={[styles.emptySubtext, { color: theme.textMuted }]}>Add years to your cameras to see the histogram</Text>
           </View>
         )}
       </View>
 
       {/* Camera Types */}
-      <View style={styles.statsCard}>
+      <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
         <View style={styles.chartHeader}>
-          <Ionicons name="aperture" size={24} color="#D4A574" />
-          <Text style={styles.chartTitle}>Top Camera Types</Text>
+          <Ionicons name="aperture" size={24} color={theme.primary} />
+          <Text style={[styles.chartTitle, { color: theme.text }]}>Top Camera Types</Text>
         </View>
         {typeStats.length > 0 ? (
           typeStats.map(([type, count], index) => (
             <View key={type} style={styles.statRow}>
-              <View style={styles.statRank}>
-                <Text style={styles.rankText}>{index + 1}</Text>
+              <View style={[styles.statRank, { backgroundColor: theme.surfaceLight }]}>
+                <Text style={[styles.rankText, { color: theme.primary }]}>{index + 1}</Text>
               </View>
-              <Text style={styles.statName} numberOfLines={1}>{type}</Text>
-              <View style={styles.statBarContainer}>
+              <Text style={[styles.statName, { color: theme.text }]} numberOfLines={1}>{type}</Text>
+              <View style={[styles.statBarContainer, { backgroundColor: theme.surfaceLight }]}>
                 <View 
                   style={[
                     styles.statBar, 
-                    { width: `${(count / cameras.length) * 100}%` }
+                    { width: `${(count / cameras.length) * 100}%`, backgroundColor: theme.primary }
                   ]} 
                 />
               </View>
-              <Text style={styles.statCount}>{count}</Text>
+              <Text style={[styles.statCount, { color: theme.primary }]}>{count}</Text>
             </View>
           ))
         ) : (
-          <Text style={styles.noDataText}>No cameras in collection</Text>
+          <Text style={[styles.noDataText, { color: theme.textMuted }]}>No cameras in collection</Text>
         )}
       </View>
 
       {/* Brands */}
-      <View style={styles.statsCard}>
+      <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
         <View style={styles.chartHeader}>
-          <Ionicons name="business" size={24} color="#D4A574" />
-          <Text style={styles.chartTitle}>Top Brands</Text>
+          <Ionicons name="business" size={24} color={theme.primary} />
+          <Text style={[styles.chartTitle, { color: theme.text }]}>Top Brands</Text>
         </View>
         {brandStats.length > 0 ? (
           brandStats.map(([brand, count], index) => (
             <View key={brand} style={styles.statRow}>
-              <View style={styles.statRank}>
-                <Text style={styles.rankText}>{index + 1}</Text>
+              <View style={[styles.statRank, { backgroundColor: theme.surfaceLight }]}>
+                <Text style={[styles.rankText, { color: theme.primary }]}>{index + 1}</Text>
               </View>
-              <Text style={styles.statName} numberOfLines={1}>{brand}</Text>
-              <View style={styles.statBarContainer}>
+              <Text style={[styles.statName, { color: theme.text }]} numberOfLines={1}>{brand}</Text>
+              <View style={[styles.statBarContainer, { backgroundColor: theme.surfaceLight }]}>
                 <View 
                   style={[
                     styles.statBar, 
-                    { width: `${(count / cameras.length) * 100}%` }
+                    { width: `${(count / cameras.length) * 100}%`, backgroundColor: theme.primary }
                   ]} 
                 />
               </View>
-              <Text style={styles.statCount}>{count}</Text>
+              <Text style={[styles.statCount, { color: theme.primary }]}>{count}</Text>
             </View>
           ))
         ) : (
-          <Text style={styles.noDataText}>No cameras in collection</Text>
+          <Text style={[styles.noDataText, { color: theme.textMuted }]}>No cameras in collection</Text>
         )}
       </View>
 
       {/* Film Formats */}
-      <View style={styles.statsCard}>
+      <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
         <View style={styles.chartHeader}>
-          <Ionicons name="film" size={24} color="#D4A574" />
-          <Text style={styles.chartTitle}>Film Formats</Text>
+          <Ionicons name="film" size={24} color={theme.primary} />
+          <Text style={[styles.chartTitle, { color: theme.text }]}>Film Formats</Text>
         </View>
         {cameras.length > 0 ? (
           (() => {
@@ -299,24 +296,24 @@ export default function StatsScreen() {
               .slice(0, 5)
               .map(([format, count], index) => (
                 <View key={format} style={styles.statRow}>
-                  <View style={styles.statRank}>
-                    <Text style={styles.rankText}>{index + 1}</Text>
+                  <View style={[styles.statRank, { backgroundColor: theme.surfaceLight }]}>
+                    <Text style={[styles.rankText, { color: theme.primary }]}>{index + 1}</Text>
                   </View>
-                  <Text style={styles.statName} numberOfLines={1}>{format}</Text>
-                  <View style={styles.statBarContainer}>
+                  <Text style={[styles.statName, { color: theme.text }]} numberOfLines={1}>{format}</Text>
+                  <View style={[styles.statBarContainer, { backgroundColor: theme.surfaceLight }]}>
                     <View 
                       style={[
                         styles.statBar, 
-                        { width: `${(count / cameras.length) * 100}%` }
+                        { width: `${(count / cameras.length) * 100}%`, backgroundColor: theme.primary }
                       ]} 
                     />
                   </View>
-                  <Text style={styles.statCount}>{count}</Text>
+                  <Text style={[styles.statCount, { color: theme.primary }]}>{count}</Text>
                 </View>
               ));
           })()
         ) : (
-          <Text style={styles.noDataText}>No cameras in collection</Text>
+          <Text style={[styles.noDataText, { color: theme.textMuted }]}>No cameras in collection</Text>
         )}
       </View>
 
@@ -328,22 +325,18 @@ export default function StatsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212',
   },
   loadingText: {
-    color: '#888',
     marginTop: 16,
     fontSize: 16,
   },
   summaryCard: {
     flexDirection: 'row',
-    backgroundColor: '#1E1E1E',
     margin: 16,
     borderRadius: 16,
     padding: 20,
@@ -354,21 +347,17 @@ const styles = StyleSheet.create({
   },
   summaryDivider: {
     width: 1,
-    backgroundColor: '#333',
   },
   summaryNumber: {
-    color: '#fff',
     fontSize: 28,
     fontWeight: 'bold',
     marginTop: 8,
   },
   summaryLabel: {
-    color: '#888',
     fontSize: 12,
     marginTop: 4,
   },
   chartCard: {
-    backgroundColor: '#1E1E1E',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -380,7 +369,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   chartTitle: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 12,
@@ -397,7 +385,6 @@ const styles = StyleSheet.create({
     paddingBottom: 25,
   },
   yAxisLabel: {
-    color: '#666',
     fontSize: 11,
   },
   barsContainer: {
@@ -414,7 +401,6 @@ const styles = StyleSheet.create({
   },
   gridLine: {
     height: 1,
-    backgroundColor: '#333',
   },
   bars: {
     flex: 1,
@@ -429,7 +415,6 @@ const styles = StyleSheet.create({
     maxWidth: 60,
   },
   barValue: {
-    color: '#D4A574',
     fontSize: 12,
     fontWeight: 'bold',
     marginBottom: 4,
@@ -440,7 +425,6 @@ const styles = StyleSheet.create({
     minHeight: 4,
   },
   barLabel: {
-    color: '#888',
     fontSize: 11,
     marginTop: 8,
   },
@@ -449,18 +433,15 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    color: '#888',
     fontSize: 16,
     marginTop: 12,
   },
   emptySubtext: {
-    color: '#666',
     fontSize: 14,
     marginTop: 4,
     textAlign: 'center',
   },
   statsCard: {
-    backgroundColor: '#1E1E1E',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -475,43 +456,36 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   rankText: {
-    color: '#D4A574',
     fontSize: 12,
     fontWeight: 'bold',
   },
   statName: {
-    color: '#fff',
     fontSize: 13,
     flex: 1,
   },
   statBarContainer: {
     width: 60,
     height: 8,
-    backgroundColor: '#333',
     borderRadius: 4,
     marginRight: 12,
     overflow: 'hidden',
   },
   statBar: {
     height: '100%',
-    backgroundColor: '#D4A574',
     borderRadius: 4,
   },
   statCount: {
-    color: '#D4A574',
     fontSize: 14,
     fontWeight: 'bold',
     width: 25,
     textAlign: 'right',
   },
   noDataText: {
-    color: '#666',
     fontSize: 14,
     textAlign: 'center',
     paddingVertical: 20,

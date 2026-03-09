@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { useTheme } from '../contexts/ThemeContext';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -27,6 +28,7 @@ interface Options {
 type ItemMode = 'collection' | 'wishlist' | 'accessory';
 
 export default function AddCameraScreen() {
+  const { theme } = useTheme();
   const router = useRouter();
   const [options, setOptions] = useState<Options>({
     camera_types: [],
@@ -136,7 +138,6 @@ export default function AddCameraScreen() {
   };
 
   const handleSave = async () => {
-    // Validate based on mode
     if (mode === 'accessory') {
       if (!name.trim() || !brand.trim() || !accessoryType) {
         Alert.alert('Missing Information', 'Please fill in all required fields');
@@ -222,15 +223,15 @@ export default function AddCameraScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#D4A574" />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -239,23 +240,23 @@ export default function AddCameraScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Mode Toggle */}
-        <View style={styles.toggleContainer}>
+        <View style={[styles.toggleContainer, { backgroundColor: theme.surface }]}>
           <TouchableOpacity
             style={[
               styles.toggleButton,
-              mode === 'collection' && styles.toggleButtonActive,
+              mode === 'collection' && { backgroundColor: theme.primary },
             ]}
             onPress={() => { setMode('collection'); resetForm(); }}
           >
             <Ionicons
               name="camera"
               size={18}
-              color={mode === 'collection' ? '#fff' : '#888'}
+              color={mode === 'collection' ? '#fff' : theme.textSecondary}
             />
             <Text
               style={[
                 styles.toggleText,
-                mode === 'collection' && styles.toggleTextActive,
+                { color: mode === 'collection' ? '#fff' : theme.textSecondary },
               ]}
             >
               Collection
@@ -264,19 +265,19 @@ export default function AddCameraScreen() {
           <TouchableOpacity
             style={[
               styles.toggleButton,
-              mode === 'wishlist' && styles.toggleButtonActive,
+              mode === 'wishlist' && { backgroundColor: theme.primary },
             ]}
             onPress={() => { setMode('wishlist'); resetForm(); }}
           >
             <Ionicons
               name="heart"
               size={18}
-              color={mode === 'wishlist' ? '#fff' : '#888'}
+              color={mode === 'wishlist' ? '#fff' : theme.textSecondary}
             />
             <Text
               style={[
                 styles.toggleText,
-                mode === 'wishlist' && styles.toggleTextActive,
+                { color: mode === 'wishlist' ? '#fff' : theme.textSecondary },
               ]}
             >
               Wishlist
@@ -285,19 +286,19 @@ export default function AddCameraScreen() {
           <TouchableOpacity
             style={[
               styles.toggleButton,
-              mode === 'accessory' && styles.toggleButtonActive,
+              mode === 'accessory' && { backgroundColor: theme.primary },
             ]}
             onPress={() => { setMode('accessory'); resetForm(); }}
           >
             <Ionicons
               name="briefcase"
               size={18}
-              color={mode === 'accessory' ? '#fff' : '#888'}
+              color={mode === 'accessory' ? '#fff' : theme.textSecondary}
             />
             <Text
               style={[
                 styles.toggleText,
-                mode === 'accessory' && styles.toggleTextActive,
+                { color: mode === 'accessory' ? '#fff' : theme.textSecondary },
               ]}
             >
               Accessory
@@ -306,7 +307,7 @@ export default function AddCameraScreen() {
         </View>
 
         {/* Image Picker */}
-        <TouchableOpacity style={styles.imagePicker} onPress={showImageOptions}>
+        <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.surface }]} onPress={showImageOptions}>
           {image ? (
             <Image source={{ uri: image }} style={styles.previewImage} />
           ) : (
@@ -314,9 +315,9 @@ export default function AddCameraScreen() {
               <Ionicons 
                 name={mode === 'accessory' ? 'briefcase-outline' : 'camera-outline'} 
                 size={48} 
-                color="#666" 
+                color={theme.textMuted} 
               />
-              <Text style={styles.imagePlaceholderText}>Add Photo</Text>
+              <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>Add Photo</Text>
             </View>
           )}
           {image && (
@@ -324,7 +325,7 @@ export default function AddCameraScreen() {
               style={styles.removeImageButton}
               onPress={() => setImage(null)}
             >
-              <Ionicons name="close-circle" size={28} color="#E74C3C" />
+              <Ionicons name="close-circle" size={28} color={theme.error} />
             </TouchableOpacity>
           )}
         </TouchableOpacity>
@@ -332,41 +333,40 @@ export default function AddCameraScreen() {
         {/* Form Fields */}
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: theme.primary }]}>
               {mode === 'accessory' ? 'Accessory Name *' : 'Camera Name *'}
             </Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
               placeholder={mode === 'accessory' ? 'e.g., Summicron 50mm f/2' : 'e.g., Leica M3'}
-              placeholderTextColor="#666"
+              placeholderTextColor={theme.textMuted}
               value={name}
               onChangeText={setName}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Brand/Manufacturer *</Text>
+            <Text style={[styles.label, { color: theme.primary }]}>Brand/Manufacturer *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
               placeholder="e.g., Leica, Canon, Nikon"
-              placeholderTextColor="#666"
+              placeholderTextColor={theme.textMuted}
               value={brand}
               onChangeText={setBrand}
             />
           </View>
 
           {mode === 'accessory' ? (
-            // Accessory Type Selector
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Accessory Type *</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>Accessory Type *</Text>
               <TouchableOpacity
-                style={styles.selector}
+                style={[styles.selector, { backgroundColor: theme.surface }]}
                 onPress={() => setShowAccessoryTypeSelector(!showAccessoryTypeSelector)}
               >
                 <Text
                   style={[
                     styles.selectorText,
-                    !accessoryType && styles.selectorPlaceholder,
+                    { color: accessoryType ? theme.text : theme.textMuted },
                   ]}
                 >
                   {accessoryType || 'Select accessory type'}
@@ -374,17 +374,18 @@ export default function AddCameraScreen() {
                 <Ionicons
                   name={showAccessoryTypeSelector ? 'chevron-up' : 'chevron-down'}
                   size={20}
-                  color="#888"
+                  color={theme.textSecondary}
                 />
               </TouchableOpacity>
               {showAccessoryTypeSelector && (
-                <ScrollView style={styles.optionsList} nestedScrollEnabled>
+                <ScrollView style={[styles.optionsList, { backgroundColor: theme.surface }]} nestedScrollEnabled>
                   {options.accessory_types.map((type) => (
                     <TouchableOpacity
                       key={type}
                       style={[
                         styles.optionItem,
-                        accessoryType === type && styles.optionItemSelected,
+                        { borderBottomColor: theme.border },
+                        accessoryType === type && { backgroundColor: theme.primary },
                       ]}
                       onPress={() => {
                         setAccessoryType(type);
@@ -394,7 +395,7 @@ export default function AddCameraScreen() {
                       <Text
                         style={[
                           styles.optionText,
-                          accessoryType === type && styles.optionTextSelected,
+                          { color: accessoryType === type ? '#fff' : theme.text },
                         ]}
                       >
                         {type}
@@ -405,18 +406,17 @@ export default function AddCameraScreen() {
               )}
             </View>
           ) : (
-            // Camera Type & Film Format
             <>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Camera Type *</Text>
+                <Text style={[styles.label, { color: theme.primary }]}>Camera Type *</Text>
                 <TouchableOpacity
-                  style={styles.selector}
+                  style={[styles.selector, { backgroundColor: theme.surface }]}
                   onPress={() => setShowTypeSelector(!showTypeSelector)}
                 >
                   <Text
                     style={[
                       styles.selectorText,
-                      !cameraType && styles.selectorPlaceholder,
+                      { color: cameraType ? theme.text : theme.textMuted },
                     ]}
                   >
                     {cameraType || 'Select camera type'}
@@ -424,17 +424,18 @@ export default function AddCameraScreen() {
                   <Ionicons
                     name={showTypeSelector ? 'chevron-up' : 'chevron-down'}
                     size={20}
-                    color="#888"
+                    color={theme.textSecondary}
                   />
                 </TouchableOpacity>
                 {showTypeSelector && (
-                  <ScrollView style={styles.optionsList} nestedScrollEnabled>
+                  <ScrollView style={[styles.optionsList, { backgroundColor: theme.surface }]} nestedScrollEnabled>
                     {options.camera_types.map((type) => (
                       <TouchableOpacity
                         key={type}
                         style={[
                           styles.optionItem,
-                          cameraType === type && styles.optionItemSelected,
+                          { borderBottomColor: theme.border },
+                          cameraType === type && { backgroundColor: theme.primary },
                         ]}
                         onPress={() => {
                           setCameraType(type);
@@ -444,7 +445,7 @@ export default function AddCameraScreen() {
                         <Text
                           style={[
                             styles.optionText,
-                            cameraType === type && styles.optionTextSelected,
+                            { color: cameraType === type ? '#fff' : theme.text },
                           ]}
                         >
                           {type}
@@ -456,15 +457,15 @@ export default function AddCameraScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Film Format *</Text>
+                <Text style={[styles.label, { color: theme.primary }]}>Film Format *</Text>
                 <TouchableOpacity
-                  style={styles.selector}
+                  style={[styles.selector, { backgroundColor: theme.surface }]}
                   onPress={() => setShowFormatSelector(!showFormatSelector)}
                 >
                   <Text
                     style={[
                       styles.selectorText,
-                      !filmFormat && styles.selectorPlaceholder,
+                      { color: filmFormat ? theme.text : theme.textMuted },
                     ]}
                   >
                     {filmFormat || 'Select film format'}
@@ -472,17 +473,18 @@ export default function AddCameraScreen() {
                   <Ionicons
                     name={showFormatSelector ? 'chevron-up' : 'chevron-down'}
                     size={20}
-                    color="#888"
+                    color={theme.textSecondary}
                   />
                 </TouchableOpacity>
                 {showFormatSelector && (
-                  <ScrollView style={styles.optionsList} nestedScrollEnabled>
+                  <ScrollView style={[styles.optionsList, { backgroundColor: theme.surface }]} nestedScrollEnabled>
                     {options.film_formats.map((format) => (
                       <TouchableOpacity
                         key={format}
                         style={[
                           styles.optionItem,
-                          filmFormat === format && styles.optionItemSelected,
+                          { borderBottomColor: theme.border },
+                          filmFormat === format && { backgroundColor: theme.primary },
                         ]}
                         onPress={() => {
                           setFilmFormat(format);
@@ -492,7 +494,7 @@ export default function AddCameraScreen() {
                         <Text
                           style={[
                             styles.optionText,
-                            filmFormat === format && styles.optionTextSelected,
+                            { color: filmFormat === format ? '#fff' : theme.text },
                           ]}
                         >
                           {format}
@@ -507,11 +509,11 @@ export default function AddCameraScreen() {
 
           {mode === 'accessory' && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Compatible With</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>Compatible With</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
                 placeholder="e.g., Canon EOS, Nikon F-Mount, Universal"
-                placeholderTextColor="#666"
+                placeholderTextColor={theme.textMuted}
                 value={compatibleWith}
                 onChangeText={setCompatibleWith}
               />
@@ -519,11 +521,11 @@ export default function AddCameraScreen() {
           )}
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Year/Era</Text>
+            <Text style={[styles.label, { color: theme.primary }]}>Year/Era</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
               placeholder="e.g., 1954, 1960s, Early 1970s"
-              placeholderTextColor="#666"
+              placeholderTextColor={theme.textMuted}
               value={year}
               onChangeText={setYear}
             />
@@ -531,21 +533,18 @@ export default function AddCameraScreen() {
 
           {mode === 'wishlist' && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Priority</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>Priority</Text>
               <View style={styles.priorityContainer}>
                 {['low', 'medium', 'high'].map((p) => (
                   <TouchableOpacity
                     key={p}
                     style={[
                       styles.priorityButton,
-                      priority === p && styles.priorityButtonActive,
+                      { backgroundColor: theme.surface },
                       priority === p && {
                         backgroundColor:
-                          p === 'high'
-                            ? '#E74C3C'
-                            : p === 'medium'
-                            ? '#F39C12'
-                            : '#27AE60',
+                          p === 'high' ? theme.priorityHigh :
+                          p === 'medium' ? theme.priorityMedium : theme.priorityLow,
                       },
                     ]}
                     onPress={() => setPriority(p)}
@@ -553,7 +552,7 @@ export default function AddCameraScreen() {
                     <Text
                       style={[
                         styles.priorityText,
-                        priority === p && styles.priorityTextActive,
+                        { color: priority === p ? '#fff' : theme.textSecondary },
                       ]}
                     >
                       {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -565,13 +564,13 @@ export default function AddCameraScreen() {
           )}
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Notes</Text>
+            <Text style={[styles.label, { color: theme.primary }]}>Notes</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: theme.surface, color: theme.text }]}
               placeholder={mode === 'accessory' 
                 ? 'Add any notes about this accessory...' 
                 : 'Add any notes about this camera...'}
-              placeholderTextColor="#666"
+              placeholderTextColor={theme.textMuted}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -583,7 +582,7 @@ export default function AddCameraScreen() {
 
         {/* Save Button */}
         <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: theme.primary }, saving && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={saving}
         >
@@ -616,13 +615,11 @@ export default function AddCameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212',
   },
   scrollView: {
     flex: 1,
@@ -630,7 +627,6 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row',
     margin: 16,
-    backgroundColor: '#1E1E1E',
     borderRadius: 12,
     padding: 4,
   },
@@ -642,24 +638,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
   },
-  toggleButtonActive: {
-    backgroundColor: '#D4A574',
-  },
   toggleText: {
-    color: '#888',
     fontSize: 13,
     fontWeight: '600',
     marginLeft: 6,
-  },
-  toggleTextActive: {
-    color: '#fff',
   },
   imagePicker: {
     marginHorizontal: 16,
     height: 180,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#1E1E1E',
     marginBottom: 16,
   },
   previewImage: {
@@ -673,7 +661,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   imagePlaceholderText: {
-    color: '#666',
     marginTop: 8,
     fontSize: 16,
   },
@@ -689,16 +676,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    color: '#D4A574',
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#1E1E1E',
     borderRadius: 12,
     padding: 16,
-    color: '#fff',
     fontSize: 16,
   },
   textArea: {
@@ -709,19 +693,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E1E1E',
     borderRadius: 12,
     padding: 16,
   },
   selectorText: {
-    color: '#fff',
     fontSize: 16,
   },
-  selectorPlaceholder: {
-    color: '#666',
-  },
   optionsList: {
-    backgroundColor: '#1E1E1E',
     borderRadius: 12,
     marginTop: 8,
     maxHeight: 200,
@@ -730,17 +708,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  optionItemSelected: {
-    backgroundColor: '#D4A574',
   },
   optionText: {
-    color: '#fff',
     fontSize: 14,
-  },
-  optionTextSelected: {
-    fontWeight: 'bold',
   },
   priorityContainer: {
     flexDirection: 'row',
@@ -750,24 +720,15 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#1E1E1E',
     alignItems: 'center',
   },
-  priorityButtonActive: {
-    borderWidth: 0,
-  },
   priorityText: {
-    color: '#888',
     fontWeight: '600',
-  },
-  priorityTextActive: {
-    color: '#fff',
   },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#D4A574',
     marginHorizontal: 16,
     marginTop: 24,
     paddingVertical: 16,
