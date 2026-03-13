@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
 interface Accessory {
   id: string;
@@ -62,9 +64,15 @@ export default function AccessoriesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
   const fetchAccessories = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/accessories`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_URL}/api/accessories`, { headers });
       if (response.ok) {
         const data = await response.json();
         setAccessories(data);
@@ -106,8 +114,10 @@ export default function AccessoriesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              const headers = await getAuthHeaders();
               const response = await fetch(`${API_URL}/api/accessories/${id}`, {
                 method: 'DELETE',
+                headers,
               });
               if (response.ok) {
                 setAccessories(accessories.filter((a) => a.id !== id));

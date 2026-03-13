@@ -15,9 +15,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
 interface Options {
   camera_types: string[];
@@ -58,6 +60,11 @@ export default function AddCameraScreen() {
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [showFormatSelector, setShowFormatSelector] = useState(false);
   const [showAccessoryTypeSelector, setShowAccessoryTypeSelector] = useState(false);
+
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
 
   useEffect(() => {
     fetchOptions();
@@ -192,9 +199,10 @@ export default function AddCameraScreen() {
     }
 
     try {
+      const authHeaders = await getAuthHeaders();
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify(body),
       });
 

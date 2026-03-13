@@ -1,11 +1,28 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Platform } from 'react-native';
-import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '../src/contexts/ThemeContext';
+import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
+import LoginScreen from './login';
 
 function TabLayoutContent() {
   const { theme } = useTheme();
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
+  
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
   
   return (
     <Tabs
@@ -96,6 +113,12 @@ function TabLayoutContent() {
         }}
       />
       <Tabs.Screen
+        name="login"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="camera/[id]"
         options={{
           href: null,
@@ -123,7 +146,17 @@ function TabLayoutContent() {
 export default function TabLayout() {
   return (
     <ThemeProvider>
-      <TabLayoutContent />
+      <AuthProvider>
+        <TabLayoutContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});

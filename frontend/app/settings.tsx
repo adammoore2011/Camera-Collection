@@ -6,9 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, themes, ThemeName } from '../contexts/ThemeContext';
+import { useTheme, themes, ThemeName } from '../src/contexts/ThemeContext';
+import { useAuth } from '../src/contexts/AuthContext';
 
 const iconPink = require('../assets/images/icon-pink.jpg');
 const iconBlue = require('../assets/images/icon-blue.jpg');
@@ -26,6 +28,7 @@ const iconOptions: { key: IconKey; label: string; image: any }[] = [
 
 export default function SettingsScreen() {
   const { theme, themeName, setThemeName, appIcon, setAppIcon } = useTheme();
+  const { user, logout } = useAuth();
 
   const themeOptions: { key: ThemeName; description: string }[] = [
     { key: 'dark', description: 'Classic dark mode' },
@@ -34,11 +37,53 @@ export default function SettingsScreen() {
     { key: 'bright', description: 'Vibrant and modern' },
   ];
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: logout },
+      ]
+    );
+  };
+
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: theme.background }]}
       showsVerticalScrollIndicator={false}
     >
+      {/* Account Section */}
+      {user && (
+        <View style={[styles.section, { backgroundColor: theme.surface }]}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="person-circle" size={24} color={theme.primary} />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Account</Text>
+          </View>
+          
+          <View style={styles.accountInfo}>
+            {user.picture ? (
+              <Image source={{ uri: user.picture }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary }]}>
+                <Text style={styles.avatarText}>{user.name?.charAt(0) || 'U'}</Text>
+              </View>
+            )}
+            <View style={styles.accountDetails}>
+              <Text style={[styles.accountName, { color: theme.text }]}>{user.name}</Text>
+              <Text style={[styles.accountEmail, { color: theme.textSecondary }]}>{user.email}</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.logoutButton, { backgroundColor: theme.error }]}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={20} color="#fff" />
+            <Text style={styles.logoutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {/* App Icon Section */}
       <View style={[styles.section, { backgroundColor: theme.surface }]}>
         <View style={styles.sectionHeader}>
@@ -173,6 +218,54 @@ const styles = StyleSheet.create({
   sectionDescription: {
     fontSize: 14,
     marginBottom: 20,
+  },
+  accountInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  avatarPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  accountDetails: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  accountName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  accountEmail: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   iconGrid: {
     flexDirection: 'row',

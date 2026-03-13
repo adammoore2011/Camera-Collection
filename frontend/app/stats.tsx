@@ -10,9 +10,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 const screenWidth = Dimensions.get('window').width;
 
 interface Camera {
@@ -35,9 +37,15 @@ export default function StatsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
   const fetchCameras = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/cameras`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_URL}/api/cameras`, { headers });
       if (response.ok) {
         const data = await response.json();
         setCameras(data);

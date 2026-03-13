@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
 interface WishlistItem {
   id: string;
@@ -44,9 +46,15 @@ export default function WishlistScreen() {
     low: theme.priorityLow,
   };
 
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
   const fetchWishlist = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/wishlist`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_URL}/api/wishlist`, { headers });
       if (response.ok) {
         const data = await response.json();
         setWishlist(data);
@@ -88,8 +96,10 @@ export default function WishlistScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              const headers = await getAuthHeaders();
               const response = await fetch(`${API_URL}/api/wishlist/${id}`, {
                 method: 'DELETE',
+                headers,
               });
               if (response.ok) {
                 setWishlist(wishlist.filter((item) => item.id !== id));
@@ -113,9 +123,10 @@ export default function WishlistScreen() {
           text: 'Add to Collection',
           onPress: async () => {
             try {
+              const headers = await getAuthHeaders();
               const response = await fetch(
                 `${API_URL}/api/wishlist/${id}/to-collection`,
-                { method: 'POST' }
+                { method: 'POST', headers }
               );
               if (response.ok) {
                 setWishlist(wishlist.filter((item) => item.id !== id));

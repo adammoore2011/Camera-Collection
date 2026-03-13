@@ -15,8 +15,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
 interface Accessory {
   id: string;
@@ -81,14 +83,20 @@ export default function AccessoryDetailScreen() {
 
   const [showTypeSelector, setShowTypeSelector] = useState(false);
 
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
   useEffect(() => {
     fetchData();
   }, [id]);
 
   const fetchData = async () => {
     try {
+      const headers = await getAuthHeaders();
       const [accessoryRes, optionsRes] = await Promise.all([
-        fetch(`${API_URL}/api/accessories/${id}`),
+        fetch(`${API_URL}/api/accessories/${id}`, { headers }),
         fetch(`${API_URL}/api/options`),
       ]);
 
@@ -148,9 +156,10 @@ export default function AccessoryDetailScreen() {
     setSaving(true);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(`${API_URL}/api/accessories/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({
           name: name.trim(),
           brand: brand.trim(),
@@ -189,8 +198,10 @@ export default function AccessoryDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              const headers = await getAuthHeaders();
               const response = await fetch(`${API_URL}/api/accessories/${id}`, {
                 method: 'DELETE',
+                headers,
               });
               if (response.ok) {
                 router.back();

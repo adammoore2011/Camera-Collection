@@ -15,8 +15,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
 interface WishlistItem {
   id: string;
@@ -67,14 +69,20 @@ export default function WishlistItemDetailScreen() {
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [showFormatSelector, setShowFormatSelector] = useState(false);
 
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
   useEffect(() => {
     fetchData();
   }, [id]);
 
   const fetchData = async () => {
     try {
+      const headers = await getAuthHeaders();
       const [itemRes, optionsRes] = await Promise.all([
-        fetch(`${API_URL}/api/wishlist/${id}`),
+        fetch(`${API_URL}/api/wishlist/${id}`, { headers }),
         fetch(`${API_URL}/api/options`),
       ]);
 
@@ -135,9 +143,10 @@ export default function WishlistItemDetailScreen() {
     setSaving(true);
 
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(`${API_URL}/api/wishlist/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({
           name: name.trim(),
           brand: brand.trim(),
@@ -177,8 +186,10 @@ export default function WishlistItemDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              const headers = await getAuthHeaders();
               const response = await fetch(`${API_URL}/api/wishlist/${id}`, {
                 method: 'DELETE',
+                headers,
               });
               if (response.ok) {
                 router.back();
@@ -202,9 +213,10 @@ export default function WishlistItemDetailScreen() {
           text: 'Add to Collection',
           onPress: async () => {
             try {
+              const headers = await getAuthHeaders();
               const response = await fetch(
                 `${API_URL}/api/wishlist/${id}/to-collection`,
-                { method: 'POST' }
+                { method: 'POST', headers }
               );
               if (response.ok) {
                 Alert.alert('Success', 'Camera added to your collection!', [

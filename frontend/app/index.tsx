@@ -13,9 +13,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from '../src/contexts/ThemeContext';
+import { useAuth } from '../src/contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
 interface Camera {
   id: string;
@@ -31,15 +34,22 @@ interface Camera {
 
 export default function CollectionScreen() {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const router = useRouter();
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
   const fetchCameras = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/cameras`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_URL}/api/cameras`, { headers });
       if (response.ok) {
         const data = await response.json();
         setCameras(data);
@@ -81,8 +91,10 @@ export default function CollectionScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              const headers = await getAuthHeaders();
               const response = await fetch(`${API_URL}/api/cameras/${id}`, {
                 method: 'DELETE',
+                headers,
               });
               if (response.ok) {
                 setCameras(cameras.filter((c) => c.id !== id));
