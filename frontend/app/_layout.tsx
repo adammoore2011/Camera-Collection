@@ -1,14 +1,24 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, useSegments } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from '../src/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
 import LoginScreen from './login';
+import AuthCallbackScreen from './auth-callback';
 
 function TabLayoutContent() {
   const { theme } = useTheme();
   const { isAuthenticated, isLoading } = useAuth();
+  const segments = useSegments();
+  
+  // Check if we're on the auth-callback route
+  const isAuthCallback = segments[0] === 'auth-callback';
+  
+  // Allow auth-callback to be shown without auth check
+  if (isAuthCallback) {
+    return <AuthCallbackScreen />;
+  }
   
   // Show loading while checking auth
   if (isLoading) {
@@ -137,6 +147,13 @@ function TabLayoutContent() {
         options={{
           href: null,
           headerTitle: 'Accessory Details',
+        }}
+      />
+      <Tabs.Screen
+        name="auth-callback"
+        options={{
+          href: null,
+          headerShown: false,
         }}
       />
     </Tabs>
