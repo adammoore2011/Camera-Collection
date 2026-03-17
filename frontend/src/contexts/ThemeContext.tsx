@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as AlternateAppIcons from 'expo-alternate-app-icons';
 
 // Theme definitions
 export const themes = {
@@ -141,8 +142,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setAppIconState(icon);
     try {
       await AsyncStorage.setItem(ICON_STORAGE_KEY, icon);
+      // Change the native app icon using expo-alternate-app-icons
+      if (AlternateAppIcons.supportsAlternateIcons()) {
+        await AlternateAppIcons.setAlternateAppIcon(icon);
+      }
     } catch (error) {
-      console.error('Error saving icon:', error);
+      console.error('Error saving/setting icon:', error);
     }
   };
 

@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional
 import time
 
 # Backend API base URL
-BASE_URL = "https://film-keeper.preview.emergentagent.com/api"
+BASE_URL = "https://shutter-catalog.preview.emergentagent.com/api"
 
 # Sample base64 image for testing (small 1x1 pixel PNG)
 SAMPLE_IMAGE_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="

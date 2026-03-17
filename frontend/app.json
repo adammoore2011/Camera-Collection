@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000"
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -40,10 +40,21 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#000"
+          "backgroundColor": "#000000"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-alternate-app-icons",
+        {
+          "icons": {
+            "pink": "./assets/images/icon-pink.png",
+            "blue": "./assets/images/icon-blue.png",
+            "brown": "./assets/images/icon-brown.png",
+            "dark": "./assets/images/icon-dark.png"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
