@@ -17,6 +17,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -73,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
-  // Exchange session_id for session token - defined before useEffect that uses it
+  // Exchange session_id for session token - for Google OAuth
   const exchangeSession = useCallback(async (sessionId: string) => {
     try {
       setIsLoading(true);
@@ -94,9 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('User data received:', userData?.email);
         
         // Extract session token from Set-Cookie header or response
-        // For mobile, we'll store it ourselves
         const cookies = response.headers.get('set-cookie');
-        let token = sessionId; // Fallback to sessionId
+        let token = sessionId;
         
         if (cookies && cookies.includes('session_token=')) {
           const match = cookies.match(/session_token=([^;]+)/);
@@ -105,11 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
         
-        // Store session token first
         await AsyncStorage.setItem(SESSION_TOKEN_KEY, token);
-        console.log('Token stored in AsyncStorage');
-        
-        // Then update state
         setSessionToken(token);
         setUser(userData);
         setIsLoading(false);
@@ -131,7 +128,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const url = event.url;
       console.log('Deep link received:', url);
       
-      // Check for session_id in URL
       if (url.includes('session_id=')) {
         const sessionId = url.split('session_id=')[1]?.split('&')[0];
         console.log('Session ID extracted:', sessionId);
@@ -142,10 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Listen for deep links
     const subscription = Linking.addEventListener('url', handleDeepLink);
 
-    // Check if app was opened via deep link
     Linking.getInitialURL().then((url) => {
       if (url) {
         console.log('Initial URL:', url);
@@ -161,8 +155,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login with Google
   const login = useCallback(async () => {
     try {
-      // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-      // For Expo, we use the app's URL scheme for redirect
       const redirectUrl = Linking.createURL('auth-callback');
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
       
@@ -173,7 +165,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('WebBrowser result type:', result.type);
       
       if (result.type === 'success' && result.url) {
-        // Extract session_id from URL fragment
         const url = result.url;
         console.log('OAuth callback URL:', url);
         
@@ -193,6 +184,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [exchangeSession]);
 
+  // Login with Email/Password
+  const loginWithEmail = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const token = data.token;
+        await AsyncStorage.setItem(SESSION_TOKEN_KEY, token);
+        setSessionToken(token);
+        setUser({
+          user_id: data.user_id,
+          email: data.email,
+          name: data.name,
+          picture: data.picture,
+        });
+        setIsLoading(false);
+        return { success: true };
+      } else {
+        setIsLoading(false);
+        return { success: false, error: data.detail || 'Login failed' };
+      }
+    } catch (error) {
+      console.error('Email login error:', error);
+      setIsLoading(false);
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  }, []);
+
+  // Register with Email/Password
+  const register = useCallback(async (email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const token = data.token;
+        await AsyncStorage.setItem(SESSION_TOKEN_KEY, token);
+        setSessionToken(token);
+        setUser({
+          user_id: data.user_id,
+          email: data.email,
+          name: data.name,
+          picture: data.picture,
+        });
+        setIsLoading(false);
+        return { success: true };
+      } else {
+        setIsLoading(false);
+        return { success: false, error: data.detail || 'Registration failed' };
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setIsLoading(false);
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  }, []);
+
   // Logout
   const logout = async () => {
     try {
@@ -210,7 +277,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
-      // Clear local state even if server request fails
       await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
       setSessionToken(null);
       setUser(null);
@@ -224,6 +290,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        loginWithEmail,
+        register,
         logout,
         checkAuth,
       }}

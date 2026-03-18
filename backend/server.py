@@ -12,6 +12,12 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 import httpx
+import bcrypt
+import jwt
+import secrets
+
+# JWT Secret Key
+JWT_SECRET = os.environ.get('JWT_SECRET', secrets.token_hex(32))
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -230,6 +236,16 @@ class Accessory(AccessoryBase):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+# Email/Password Auth Models
+class UserRegister(BaseModel):
+    email: str
+    password: str
+    name: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
 # ============ AUTH HELPERS ============
 
 async def get_current_user(request: Request) -> Optional[dict]:
@@ -244,30 +260,45 @@ async def get_current_user(request: Request) -> Optional[dict]:
     if not session_token:
         return None
     
+    # First try to find session in database
     session = await db.user_sessions.find_one(
         {"session_token": session_token},
         {"_id": 0}
     )
     
-    if not session:
+    if session:
+        # Check expiry
+        expires_at = session.get("expires_at")
+        if expires_at:
+            if isinstance(expires_at, str):
+                expires_at = datetime.fromisoformat(expires_at)
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at < datetime.now(timezone.utc):
+                return None
+        
+        user = await db.users.find_one(
+            {"user_id": session["user_id"]},
+            {"_id": 0, "password_hash": 0}
+        )
+        return user
+    
+    # If not found in sessions, try to decode as JWT
+    try:
+        payload = jwt.decode(session_token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        if user_id:
+            user = await db.users.find_one(
+                {"user_id": user_id},
+                {"_id": 0, "password_hash": 0}
+            )
+            return user
+    except jwt.ExpiredSignatureError:
         return None
+    except jwt.InvalidTokenError:
+        pass
     
-    # Check expiry
-    expires_at = session.get("expires_at")
-    if expires_at:
-        if isinstance(expires_at, str):
-            expires_at = datetime.fromisoformat(expires_at)
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-        if expires_at < datetime.now(timezone.utc):
-            return None
-    
-    user = await db.users.find_one(
-        {"user_id": session["user_id"]},
-        {"_id": 0}
-    )
-    
-    return user
+    return None
 
 async def require_auth(request: Request) -> dict:
     """Require authentication - raises 401 if not authenticated"""
@@ -415,6 +446,131 @@ async def logout(request: Request, response: Response):
     )
     
     return {"message": "Logged out successfully"}
+
+# ============ EMAIL/PASSWORD AUTH ============
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against its hash"""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def create_jwt_token(user_id: str) -> str:
+    """Create a JWT token for a user"""
+    payload = {
+        "user_id": user_id,
+        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "iat": datetime.now(timezone.utc)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+@api_router.post("/auth/register")
+async def register(data: UserRegister, response: Response):
+    """Register a new user with email and password"""
+    # Validate email format
+    if not data.email or '@' not in data.email:
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
+    # Check if email already exists
+    existing_user = await db.users.find_one({"email": data.email.lower()})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Validate password
+    if len(data.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    # Create user
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    hashed_password = hash_password(data.password)
+    
+    await db.users.insert_one({
+        "user_id": user_id,
+        "email": data.email.lower(),
+        "name": data.name,
+        "password_hash": hashed_password,
+        "picture": None,
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    # Create session token
+    session_token = create_jwt_token(user_id)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    # Set cookie
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=7 * 24 * 60 * 60
+    )
+    
+    return {
+        "user_id": user_id,
+        "email": data.email.lower(),
+        "name": data.name,
+        "picture": None,
+        "token": session_token
+    }
+
+@api_router.post("/auth/login")
+async def login_email(data: UserLogin, response: Response):
+    """Login with email and password"""
+    # Find user by email
+    user = await db.users.find_one({"email": data.email.lower()})
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Check if user has a password (might be Google-only user)
+    if not user.get("password_hash"):
+        raise HTTPException(status_code=401, detail="This account uses Google login. Please sign in with Google.")
+    
+    # Verify password
+    if not verify_password(data.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Create session token
+    session_token = create_jwt_token(user["user_id"])
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    
+    await db.user_sessions.insert_one({
+        "user_id": user["user_id"],
+        "session_token": session_token,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc)
+    })
+    
+    # Set cookie
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=7 * 24 * 60 * 60
+    )
+    
+    return {
+        "user_id": user["user_id"],
+        "email": user["email"],
+        "name": user.get("name"),
+        "picture": user.get("picture"),
+        "token": session_token
+    }
 
 # ============ PUBLIC ENDPOINTS ============
 
