@@ -47,6 +47,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "backendUrl": "https://shutter-vault.preview.emergentagent.com",
+      "eas": {
+        "projectId": "vintage-camera-collection"
+      }
     }
   }
 }
