@@ -50,7 +50,7 @@ export default function AddCameraScreen() {
   const [brand, setBrand] = useState('');
   const [year, setYear] = useState('');
   const [notes, setNotes] = useState('');
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
 
   // Camera fields
   const [cameraType, setCameraType] = useState('');
@@ -101,7 +101,7 @@ export default function AddCameraScreen() {
     setBrand('');
     setYear('');
     setNotes('');
-    setImage(null);
+    setImages([]);
     setCameraType('');
     setFilmFormat('');
     setPriority('medium');
@@ -130,7 +130,8 @@ export default function AddCameraScreen() {
     });
 
     if (!result.canceled && result.assets[0].base64) {
-      setImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      const newImage = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setImages([...images, newImage]);
     }
   };
 
@@ -149,8 +150,13 @@ export default function AddCameraScreen() {
     });
 
     if (!result.canceled && result.assets[0].base64) {
-      setImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      const newImage = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setImages([...images, newImage]);
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
   };
 
   const showImageOptions = () => {
@@ -188,7 +194,7 @@ export default function AddCameraScreen() {
         compatible_with: compatibleWith.trim() || null,
         year: year.trim() || null,
         notes: notes.trim() || null,
-        image: image,
+        image: images.length > 0 ? images[0] : null,
       };
     } else if (mode === 'wishlist') {
       endpoint = '/api/wishlist';
@@ -199,7 +205,7 @@ export default function AddCameraScreen() {
         film_format: filmFormat,
         year: year.trim() || null,
         notes: notes.trim() || null,
-        image: image,
+        image: images.length > 0 ? images[0] : null,
         priority: priority,
       };
     } else {
@@ -211,8 +217,8 @@ export default function AddCameraScreen() {
         film_format: filmFormat,
         year: year.trim() || null,
         notes: notes.trim() || null,
-        image: image,
-        images: image ? [image] : [],
+        image: images.length > 0 ? images[0] : null,
+        images: images,
         estimated_value: estimatedValue ? parseFloat(estimatedValue) : null,
         purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
         purchase_date: purchaseDate.trim() || null,
@@ -337,29 +343,54 @@ export default function AddCameraScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Image Picker */}
-        <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.surface }]} onPress={showImageOptions}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.previewImage} />
+        {/* Image Picker - Multi-Image Gallery */}
+        <View style={[styles.imageSection, { backgroundColor: theme.surface }]}>
+          {images.length === 0 ? (
+            <TouchableOpacity style={styles.imagePicker} onPress={showImageOptions}>
+              <View style={styles.imagePlaceholder}>
+                <Ionicons 
+                  name={mode === 'accessory' ? 'briefcase-outline' : 'camera-outline'} 
+                  size={48} 
+                  color={theme.textMuted} 
+                />
+                <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>Add Photo</Text>
+              </View>
+            </TouchableOpacity>
           ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons 
-                name={mode === 'accessory' ? 'briefcase-outline' : 'camera-outline'} 
-                size={48} 
-                color={theme.textMuted} 
-              />
-              <Text style={[styles.imagePlaceholderText, { color: theme.textMuted }]}>Add Photo</Text>
+            <View>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.imageGallery}
+              >
+                {images.map((img, index) => (
+                  <View key={index} style={styles.imageWrapper}>
+                    <Image source={{ uri: img }} style={styles.previewImage} />
+                    <TouchableOpacity
+                      style={styles.removeImageButton}
+                      onPress={() => removeImage(index)}
+                    >
+                      <Ionicons name="close-circle" size={24} color="#E74C3C" />
+                    </TouchableOpacity>
+                    <View style={[styles.imageIndex, { backgroundColor: theme.primary }]}>
+                      <Text style={styles.imageIndexText}>{index + 1}</Text>
+                    </View>
+                  </View>
+                ))}
+                <TouchableOpacity 
+                  style={[styles.addMoreButton, { backgroundColor: theme.surface, borderColor: theme.border }]} 
+                  onPress={showImageOptions}
+                >
+                  <Ionicons name="add" size={32} color={theme.primary} />
+                  <Text style={[styles.addMoreText, { color: theme.primary }]}>Add More</Text>
+                </TouchableOpacity>
+              </ScrollView>
+              <Text style={[styles.imageCount, { color: theme.textSecondary }]}>
+                {images.length} photo{images.length !== 1 ? 's' : ''} added
+              </Text>
             </View>
           )}
-          {image && (
-            <TouchableOpacity
-              style={styles.removeImageButton}
-              onPress={() => setImage(null)}
-            >
-              <Ionicons name="close-circle" size={28} color={theme.error} />
-            </TouchableOpacity>
-          )}
-        </TouchableOpacity>
+        </View>
 
         {/* Form Fields */}
         <View style={styles.form}>
@@ -794,12 +825,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
-  imagePicker: {
+  imageSection: {
     marginHorizontal: 16,
-    height: 180,
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 16,
+  },
+  imagePicker: {
+    height: 180,
+  },
+  imageGallery: {
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+  },
+  imageWrapper: {
+    width: 140,
+    height: 140,
+    marginHorizontal: 6,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
   },
   previewImage: {
     width: '100%',
@@ -817,8 +862,45 @@ const styles = StyleSheet.create({
   },
   removeImageButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 12,
+  },
+  imageIndex: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageIndexText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  addMoreButton: {
+    width: 140,
+    height: 140,
+    marginHorizontal: 6,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addMoreText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  imageCount: {
+    textAlign: 'center',
+    fontSize: 13,
+    paddingBottom: 12,
   },
   form: {
     paddingHorizontal: 16,

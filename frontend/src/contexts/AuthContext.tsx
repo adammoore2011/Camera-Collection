@@ -2,8 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+// Warm up the browser on Android for faster OAuth
+if (Platform.OS === 'android') {
+  WebBrowser.warmUpAsync();
+}
 
 interface User {
   user_id: string;
@@ -127,22 +133,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleDeepLink = async (event: { url: string }) => {
       const url = event.url;
       console.log('Deep link received:', url);
+      console.log('Platform:', Platform.OS);
+      
+      // Check for session_id in the URL (supports both query string and fragment)
+      let sessionId: string | null = null;
       
       if (url.includes('session_id=')) {
-        const sessionId = url.split('session_id=')[1]?.split('&')[0];
-        console.log('Session ID extracted:', sessionId);
-        
-        if (sessionId) {
-          await exchangeSession(sessionId);
+        // Try query parameter first
+        const queryMatch = url.match(/[?&]session_id=([^&#]+)/);
+        if (queryMatch) {
+          sessionId = queryMatch[1];
         }
+        
+        // Try fragment (hash) if not found in query
+        if (!sessionId) {
+          const fragmentMatch = url.match(/#.*session_id=([^&]+)/);
+          if (fragmentMatch) {
+            sessionId = fragmentMatch[1];
+          }
+        }
+        
+        // Fallback to simple split
+        if (!sessionId) {
+          sessionId = url.split('session_id=')[1]?.split('&')[0]?.split('#')[0];
+        }
+      }
+      
+      console.log('Session ID extracted from deep link:', sessionId);
+      
+      if (sessionId) {
+        await exchangeSession(sessionId);
       }
     };
 
     const subscription = Linking.addEventListener('url', handleDeepLink);
 
+    // Check initial URL (for when app is launched from deep link)
     Linking.getInitialURL().then((url) => {
       if (url) {
-        console.log('Initial URL:', url);
+        console.log('Initial URL on app start:', url);
         handleDeepLink({ url });
       }
     });
@@ -155,18 +184,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login with Google
   const login = useCallback(async () => {
     try {
+      // Dismiss any existing auth session first (fixes iOS mobile issues)
+      await WebBrowser.dismissAuthSession();
+      
       const redirectUrl = Linking.createURL('auth-callback');
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
       
       console.log('Starting login with redirect URL:', redirectUrl);
+      console.log('Auth URL:', authUrl);
       
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+      // Use options for better iOS compatibility
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl, {
+        showInRecents: true,
+        preferEphemeralSession: false,
+      });
       
       console.log('WebBrowser result type:', result.type);
+      console.log('Full result:', JSON.stringify(result));
       
       if (result.type === 'success' && result.url) {
         const url = result.url;
         console.log('OAuth callback URL:', url);
+        
+        // Complete the auth session (helps iOS properly close the browser)
+        WebBrowser.maybeCompleteAuthSession();
         
         if (url.includes('session_id=')) {
           const sessionId = url.split('session_id=')[1]?.split('&')[0]?.split('#')[0];
@@ -176,11 +217,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await exchangeSession(sessionId);
           }
         }
+      } else if (result.type === 'dismiss') {
+        console.log('User dismissed the login');
       } else {
         console.log('Login was cancelled or failed:', result.type);
       }
     } catch (error) {
       console.error('Login error:', error);
+      // Try to dismiss in case of error
+      try {
+        await WebBrowser.dismissAuthSession();
+      } catch (dismissError) {
+        // Ignore dismiss errors
+      }
     }
   }, [exchangeSession]);
 
