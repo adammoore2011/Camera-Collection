@@ -156,6 +156,13 @@ function TabLayoutContent() {
           headerShown: false,
         }}
       />
+      <Tabs.Screen
+        name="import"
+        options={{
+          href: null,
+          headerTitle: 'Camera Database',
+        }}
+      />
     </Tabs>
   );
 }

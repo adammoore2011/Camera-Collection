@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 import { useTheme, themes, ThemeName } from '../src/contexts/ThemeContext';
 import { useAuth } from '../src/contexts/AuthContext';
 
@@ -38,6 +39,7 @@ export default function SettingsScreen() {
   const { theme, themeName, setThemeName, appIcon, setAppIcon } = useTheme();
   const { user, logout } = useAuth();
   const [exporting, setExporting] = useState(false);
+  const router = useRouter();
 
   const getAuthHeaders = async () => {
     const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
@@ -259,6 +261,33 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+      </View>
+
+      {/* Camera Database Section */}
+      <View style={[styles.section, { backgroundColor: theme.surface }]}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="albums-outline" size={24} color={theme.primary} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Camera Database</Text>
+        </View>
+        <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
+          Browse and import cameras from our database of vintage cameras
+        </Text>
+        
+        <TouchableOpacity
+          style={[styles.exportButton, { backgroundColor: theme.surfaceLight }]}
+          onPress={() => router.push('/import')}
+        >
+          <View style={[styles.exportIconContainer, { backgroundColor: theme.primary + '20' }]}>
+            <Ionicons name="search" size={24} color={theme.primary} />
+          </View>
+          <View style={styles.exportButtonContent}>
+            <Text style={[styles.exportButtonTitle, { color: theme.text }]}>Browse Camera Database</Text>
+            <Text style={[styles.exportButtonSubtitle, { color: theme.textSecondary }]}>
+              22 brands • Thousands of cameras
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+        </TouchableOpacity>
       </View>
 
       {/* Export & Backup Section */}

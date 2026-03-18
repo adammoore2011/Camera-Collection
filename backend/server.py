@@ -621,103 +621,6 @@ async def get_options():
         "conditions": CONDITIONS
     }
 
-# ============ CAMERA DATABASE (Pre-built list for import) ============
-
-BROWNIE_CAMERAS = [
-    {"name": "The Brownie", "brand": "Kodak", "year": "1900", "camera_type": "Film Camera", "film_format": "117 Film", "notes": "The 1st Brownie Camera - revolutionary box camera that made photography accessible to everyone"},
-    {"name": "Brownie II (110 Cartridge)", "brand": "Kodak", "year": "1980s", "camera_type": "Film Camera", "film_format": "110 Film", "notes": "The Last Brownie Camera"},
-    {"name": "Baby Brownie", "brand": "Kodak", "year": "1934-1941", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Compact bakelite camera"},
-    {"name": "Baby Brownie New York World's Fair", "brand": "Kodak", "year": "1939-1940", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Special edition for NY World's Fair"},
-    {"name": "Baby Brownie Special", "brand": "Kodak", "year": "1939-1954", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Boy Scout Brownie", "brand": "Kodak", "year": "1932", "camera_type": "Film Camera", "film_format": "120 Film", "notes": "Official Boy Scouts of America edition"},
-    {"name": "Brownie 127", "brand": "Kodak", "year": "1952-1959", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "First model"},
-    {"name": "Brownie 127 (second model)", "brand": "Kodak", "year": "1959-1963", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Second model"},
-    {"name": "Brownie 127 (third model)", "brand": "Kodak", "year": "1965-1967", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Third model"},
-    {"name": "Brownie 44A", "brand": "Kodak", "year": "1959-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie 44B", "brand": "Kodak", "year": "1961-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie 620", "brand": "Kodak", "year": "1940s", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
-    {"name": "Brownie Auto 27", "brand": "Kodak", "year": "1963-1964", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Bullet", "brand": "Kodak", "year": "1957-1964", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Bullet II", "brand": "Kodak", "year": "1961-1968", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Bulls-Eye", "brand": "Kodak", "year": "1954-1960", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
-    {"name": "Brownie Cresta", "brand": "Kodak", "year": "1955-1958", "camera_type": "Film Camera", "film_format": "120 Film", "notes": ""},
-    {"name": "Brownie Cresta II", "brand": "Kodak", "year": "1956-1959", "camera_type": "Film Camera", "film_format": "120 Film", "notes": ""},
-    {"name": "Brownie Cresta 3", "brand": "Kodak", "year": "1960-1965", "camera_type": "Film Camera", "film_format": "120 Film", "notes": ""},
-    {"name": "Brownie Fiesta", "brand": "Kodak", "year": "1962-1966", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Flash 20", "brand": "Kodak", "year": "1959-1962", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
-    {"name": "Brownie Flash B", "brand": "Kodak", "year": "1957-1960", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Flash II", "brand": "Kodak", "year": "1957-1960", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Flash III", "brand": "Kodak", "year": "1957-1960", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Flash IV", "brand": "Kodak", "year": "1957-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Flash Six-20", "brand": "Kodak", "year": "1940-1954", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
-    {"name": "Brownie Hawkeye", "brand": "Kodak", "year": "1949-1961", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "One of the most popular Brownies"},
-    {"name": "Brownie Hawkeye Flash Model", "brand": "Kodak", "year": "1950-1961", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "With flash capability"},
-    {"name": "Brownie Holiday", "brand": "Kodak", "year": "1953-1957", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Reflex", "brand": "Kodak", "year": "1940-1941", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "TLR-style viewfinder"},
-    {"name": "Brownie Reflex 20", "brand": "Kodak", "year": "1959-1966", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
-    {"name": "Brownie Starflash", "brand": "Kodak", "year": "1957-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Available in multiple colors"},
-    {"name": "Brownie Starflex", "brand": "Kodak", "year": "1957-1964", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Pseudo-TLR design"},
-    {"name": "Brownie Starlet", "brand": "Kodak", "year": "1957-1962", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Starmatic", "brand": "Kodak", "year": "1959-1963", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Auto exposure"},
-    {"name": "Brownie Starmeter", "brand": "Kodak", "year": "1960-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "With light meter"},
-    {"name": "Brownie Starmite", "brand": "Kodak", "year": "1960-1963", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Starmite II", "brand": "Kodak", "year": "1962-1967", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Super 27", "brand": "Kodak", "year": "1961-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
-    {"name": "Brownie Target Six-16", "brand": "Kodak", "year": "1946-1951", "camera_type": "Film Camera", "film_format": "616 Film", "notes": ""},
-    {"name": "Brownie Target Six-20", "brand": "Kodak", "year": "1941-1952", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
-    {"name": "Brownie Twin 20", "brand": "Kodak", "year": "1959-1964", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "Dual lens design"},
-    {"name": "Brownie Vecta", "brand": "Kodak", "year": "1963-1966", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "UK model"},
-    {"name": "No.0 Brownie", "brand": "Kodak", "year": "1914-1935", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Smallest box Brownie"},
-    {"name": "No.1 Brownie", "brand": "Kodak", "year": "1901-1915", "camera_type": "Film Camera", "film_format": "117 Film", "notes": ""},
-    {"name": "No.2 Beau Brownie", "brand": "Kodak", "year": "1930-1933", "camera_type": "Film Camera", "film_format": "120 Film", "notes": "Art Deco design by Walter Dorwin Teague"},
-    {"name": "No.2 Brownie", "brand": "Kodak", "year": "1901-1935", "camera_type": "Film Camera", "film_format": "120 Film", "notes": ""},
-    {"name": "No.2A Beau Brownie", "brand": "Kodak", "year": "1930-1933", "camera_type": "Film Camera", "film_format": "116 Film", "notes": "Art Deco design"},
-    {"name": "No.2A Brownie", "brand": "Kodak", "year": "1907-1933", "camera_type": "Film Camera", "film_format": "116 Film", "notes": ""},
-    {"name": "No.2C Brownie", "brand": "Kodak", "year": "1917-1934", "camera_type": "Film Camera", "film_format": "130 Film", "notes": ""},
-    {"name": "No.3 Brownie", "brand": "Kodak", "year": "1908-1934", "camera_type": "Film Camera", "film_format": "124 Film", "notes": ""},
-    {"name": "Popular Brownie", "brand": "Kodak", "year": "1937-1941", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "UK model"},
-    {"name": "Six-16 Brownie", "brand": "Kodak", "year": "1933-1941", "camera_type": "Film Camera", "film_format": "616 Film", "notes": ""},
-    {"name": "Six-16 Brownie Junior", "brand": "Kodak", "year": "1934-1942", "camera_type": "Film Camera", "film_format": "616 Film", "notes": ""},
-    {"name": "Six-20 Brownie", "brand": "Kodak", "year": "1933-1941", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
-    {"name": "Six-20 Brownie Junior", "brand": "Kodak", "year": "1934-1942", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
-    {"name": "Six-20 Folding Brownie", "brand": "Kodak", "year": "1937-1940", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "Folding design"},
-    {"name": "No.2 Folding Brownie", "brand": "Kodak", "year": "1904-1907", "camera_type": "Film Camera", "film_format": "120 Film", "notes": "Folding design"},
-    {"name": "No.2 Stereo Brownie", "brand": "Kodak", "year": "1905-1910", "camera_type": "Film Camera", "film_format": "120 Film", "notes": "Stereo/3D photography"},
-]
-
-@api_router.get("/camera-database")
-async def get_camera_database():
-    """Get pre-built camera database for importing"""
-    return {
-        "brownie": BROWNIE_CAMERAS,
-        "total": len(BROWNIE_CAMERAS)
-    }
-
-@api_router.post("/import-to-wishlist")
-async def import_cameras_to_wishlist(request: Request, cameras: List[dict]):
-    """Import multiple cameras to wishlist"""
-    user = await require_auth(request)
-    imported = []
-    
-    for camera in cameras:
-        camera_dict = {
-            "user_id": user["user_id"],
-            "name": camera.get("name", ""),
-            "brand": camera.get("brand", "Kodak"),
-            "camera_type": camera.get("camera_type", "Film Camera"),
-            "film_format": camera.get("film_format", "120 Film"),
-            "year": camera.get("year"),
-            "notes": camera.get("notes"),
-            "image": None,
-            "priority": "medium",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-        result = await db.wishlist.insert_one(camera_dict)
-        imported.append(str(result.inserted_id))
-    
-    return {"imported": len(imported), "ids": imported}
-
 # ============ STATS ENDPOINT ============
 
 @api_router.get("/stats")
@@ -1105,6 +1008,362 @@ async def delete_accessory(accessory_id: str, request: Request):
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ============ CAMERA DATABASE / IMPORT ENDPOINTS ============
+
+# Brand URLs for camera database
+CAMERA_BRAND_URLS = {
+    "AGFA": "https://en.wikipedia.org/wiki/Agfa_digital_cameras",
+    "Ansco": "https://camera-wiki.org/wiki/Ansco",
+    "Argus": "https://camera-wiki.org/wiki/Argus",
+    "Canon": "https://camera-wiki.org/wiki/Canon",
+    "Chinon": "https://camera-wiki.org/wiki/Chinon",
+    "Concord": "https://camera-wiki.org/wiki/Concord",
+    "Imperial": "https://camera-wiki.org/wiki/Imperial",
+    "Kodak": "https://camera-wiki.org/wiki/Kodak",
+    "Kyocera": "https://camera-wiki.org/wiki/Kyocera",
+    "Leidolf": "https://camera-wiki.org/wiki/Leidolf",
+    "Mamiya": "https://camera-wiki.org/wiki/Mamiya",
+    "Minolta": "https://camera-wiki.org/wiki/Minolta",
+    "Nishika": "https://camera-wiki.org/wiki/Nishika",
+    "Olympus": "https://camera-wiki.org/wiki/Olympus",
+    "Pentacon": "https://camera-wiki.org/wiki/Pentacon",
+    "Pentax": "https://camera-wiki.org/wiki/Pentax",
+    "Polaroid": "https://camera-wiki.org/wiki/Polaroid",
+    "Sakar": "https://camera-wiki.org/wiki/Sakar",
+    "Samsung": "https://camera-wiki.org/wiki/Samsung",
+    "Sears/Tower": "https://camera-wiki.org/wiki/Sears",
+    "Spartus": "https://camera-wiki.org/wiki/Spartus",
+    "Vivitar": "https://camera-wiki.org/wiki/Vivitar",
+}
+
+# In-memory cache for scraped camera data (TTL: 1 hour)
+camera_database_cache = {}
+cache_timestamps = {}
+CACHE_TTL = 3600  # 1 hour
+
+import re
+from bs4 import BeautifulSoup
+
+def detect_camera_type(name: str, context: str = "") -> str:
+    """Detect camera type from name and context"""
+    name_lower = name.lower()
+    context_lower = context.lower()
+    combined = f"{name_lower} {context_lower}"
+    
+    if any(x in combined for x in ["digital", "dslr", "mirrorless", "megapixel", "mp "]):
+        return "Digital"
+    if any(x in combined for x in ["polaroid", "instant", "instax"]):
+        return "Instant - Polaroid"
+    if any(x in combined for x in ["movie", "cine", "video", "8mm movie", "super 8", "16mm"]):
+        return "Video/Movie Camera"
+    if any(x in combined for x in ["medium format", "120", "220", "6x", "mamiya rb", "mamiya rz", "hasselblad"]):
+        return "Film - Medium Format"
+    if any(x in combined for x in ["large format", "4x5", "8x10", "view camera"]):
+        return "Film - Large Format"
+    if any(x in combined for x in ["tlr", "twin lens", "rolleiflex"]):
+        return "TLR (Twin Lens Reflex)"
+    if any(x in combined for x in ["slr", "reflex"]) and "twin" not in combined:
+        return "SLR (Single Lens Reflex)"
+    if any(x in combined for x in ["rangefinder", "leica m"]):
+        return "Rangefinder"
+    if any(x in combined for x in ["box camera", "brownie"]):
+        return "Box Camera"
+    if any(x in combined for x in ["folding", "folder"]):
+        return "Folding Camera"
+    if any(x in combined for x in ["point", "shoot", "compact", "pocket"]):
+        return "Point & Shoot"
+    if any(x in combined for x in ["disposable", "single use"]):
+        return "Single Use/Disposable"
+    
+    # Default to 35mm film for older cameras
+    return "Film - 35mm"
+
+def detect_film_format(name: str, camera_type: str, context: str = "") -> str:
+    """Detect film format from name and context"""
+    name_lower = name.lower()
+    context_lower = context.lower()
+    combined = f"{name_lower} {context_lower}"
+    
+    if "digital" in camera_type.lower():
+        return "N/A (Digital)"
+    if "instant" in camera_type.lower():
+        if "instax" in combined:
+            return "Instant - Instax Mini"
+        return "Instant - Polaroid 600"
+    if "medium format" in camera_type.lower():
+        return "120 (Medium Format)"
+    if "large format" in camera_type.lower():
+        return "4x5 Sheet Film"
+    if "video" in camera_type.lower() or "movie" in camera_type.lower():
+        if "super 8" in combined or "super8" in combined:
+            return "Super 8"
+        if "16mm" in combined:
+            return "16mm"
+        return "Standard 8mm"
+    
+    # Check for specific formats in name
+    if "110" in combined:
+        return "110 Film Cartridge"
+    if "126" in combined:
+        return "126 Film Cartridge"
+    if "127" in combined:
+        return "127 Film (Vest Pocket)"
+    if "aps" in combined or "advantix" in combined:
+        return "APS (Advanced Photo System/Advantix)"
+    if "disc" in combined:
+        return "Disc Film"
+    if "half frame" in combined:
+        return "Half Frame 35mm"
+    
+    # Default
+    return "35mm (135 Film)"
+
+def extract_year(text: str) -> Optional[str]:
+    """Extract year from text"""
+    # Look for 4-digit years between 1880 and 2030
+    years = re.findall(r'\b(1[89]\d{2}|20[0-2]\d)\b', text)
+    if years:
+        return years[0]
+    return None
+
+async def scrape_camera_wiki(brand: str, url: str) -> List[dict]:
+    """Scrape camera data from camera-wiki.org"""
+    cameras = []
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+            response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Find the main content
+            content = soup.find('div', {'id': 'mw-content-text'}) or soup.find('div', {'class': 'mw-parser-output'})
+            
+            if not content:
+                content = soup
+            
+            # Look for camera links and list items
+            seen_names = set()
+            
+            # Method 1: Find links that look like camera models
+            for link in content.find_all('a', href=True):
+                text = link.get_text(strip=True)
+                href = link.get('href', '')
+                
+                # Skip navigation, category, and meta links
+                if any(x in href.lower() for x in ['category:', 'special:', 'file:', 'help:', '#']):
+                    continue
+                if any(x in text.lower() for x in ['edit', 'view', 'talk', 'history', 'page']):
+                    continue
+                if len(text) < 3 or len(text) > 100:
+                    continue
+                
+                # Check if it looks like a camera model
+                if brand.lower() in text.lower() or re.search(r'\d', text):
+                    name = text.strip()
+                    if name and name not in seen_names:
+                        seen_names.add(name)
+                        
+                        # Get surrounding context for better type detection
+                        parent = link.parent
+                        context = parent.get_text() if parent else ""
+                        
+                        camera_type = detect_camera_type(name, context)
+                        film_format = detect_film_format(name, camera_type, context)
+                        year = extract_year(context)
+                        
+                        cameras.append({
+                            "name": name,
+                            "brand": brand,
+                            "camera_type": camera_type,
+                            "film_format": film_format,
+                            "year": year
+                        })
+            
+            # Method 2: Look for list items that might be camera models
+            for li in content.find_all('li'):
+                text = li.get_text(strip=True)
+                
+                # Skip if too long or too short
+                if len(text) < 3 or len(text) > 150:
+                    continue
+                
+                # Take first part before comma or dash as the camera name
+                name = re.split(r'[,\-–—:]', text)[0].strip()
+                
+                if name and name not in seen_names and len(name) >= 3:
+                    # Check if it looks like a camera model
+                    if brand.lower() in name.lower() or re.search(r'\d', name):
+                        seen_names.add(name)
+                        
+                        camera_type = detect_camera_type(name, text)
+                        film_format = detect_film_format(name, camera_type, text)
+                        year = extract_year(text)
+                        
+                        cameras.append({
+                            "name": name,
+                            "brand": brand,
+                            "camera_type": camera_type,
+                            "film_format": film_format,
+                            "year": year
+                        })
+            
+            # Method 3: Look for headings followed by content
+            for heading in content.find_all(['h2', 'h3', 'h4']):
+                heading_text = heading.get_text(strip=True)
+                if brand.lower() in heading_text.lower() or re.search(r'\d', heading_text):
+                    name = re.sub(r'\[edit\]', '', heading_text).strip()
+                    if name and name not in seen_names:
+                        seen_names.add(name)
+                        
+                        # Get next sibling for context
+                        next_elem = heading.find_next_sibling()
+                        context = next_elem.get_text() if next_elem else ""
+                        
+                        camera_type = detect_camera_type(name, context)
+                        film_format = detect_film_format(name, camera_type, context)
+                        year = extract_year(context) or extract_year(heading_text)
+                        
+                        cameras.append({
+                            "name": name,
+                            "brand": brand,
+                            "camera_type": camera_type,
+                            "film_format": film_format,
+                            "year": year
+                        })
+    
+    except Exception as e:
+        logger.error(f"Error scraping {brand}: {str(e)}")
+    
+    return cameras
+
+async def scrape_wikipedia_agfa(url: str) -> List[dict]:
+    """Special scraper for Wikipedia AGFA page"""
+    cameras = []
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+            response = await client.get(url, headers=headers, follow_redirects=True)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Wikipedia has tables with camera info
+            seen_names = set()
+            
+            # Find tables
+            for table in soup.find_all('table', {'class': 'wikitable'}):
+                for row in table.find_all('tr')[1:]:  # Skip header
+                    cells = row.find_all(['td', 'th'])
+                    if cells:
+                        name = cells[0].get_text(strip=True)
+                        if name and name not in seen_names:
+                            seen_names.add(name)
+                            
+                            row_text = row.get_text()
+                            year = extract_year(row_text)
+                            
+                            cameras.append({
+                                "name": f"AGFA {name}" if "agfa" not in name.lower() else name,
+                                "brand": "AGFA",
+                                "camera_type": "Digital",
+                                "film_format": "N/A (Digital)",
+                                "year": year
+                            })
+            
+            # Also check list items
+            content = soup.find('div', {'id': 'mw-content-text'})
+            if content:
+                for li in content.find_all('li'):
+                    text = li.get_text(strip=True)
+                    if 'agfa' in text.lower() and len(text) < 100:
+                        name = re.split(r'[,\-–—:]', text)[0].strip()
+                        if name and name not in seen_names:
+                            seen_names.add(name)
+                            cameras.append({
+                                "name": name,
+                                "brand": "AGFA",
+                                "camera_type": "Digital",
+                                "film_format": "N/A (Digital)",
+                                "year": extract_year(text)
+                            })
+                            
+    except Exception as e:
+        logger.error(f"Error scraping AGFA Wikipedia: {str(e)}")
+    
+    return cameras
+
+@api_router.get("/camera-database")
+async def get_camera_database():
+    """Get list of available camera brands"""
+    return {
+        "brands": list(CAMERA_BRAND_URLS.keys()),
+        "total_brands": len(CAMERA_BRAND_URLS)
+    }
+
+@api_router.get("/camera-database/{brand}")
+async def get_cameras_by_brand(brand: str):
+    """Get cameras for a specific brand (on-demand scraping with caching)"""
+    
+    # Normalize brand name
+    brand_normalized = None
+    for b in CAMERA_BRAND_URLS.keys():
+        if b.lower() == brand.lower():
+            brand_normalized = b
+            break
+    
+    if not brand_normalized:
+        raise HTTPException(status_code=404, detail=f"Brand '{brand}' not found")
+    
+    # Check cache
+    current_time = datetime.now(timezone.utc).timestamp()
+    if brand_normalized in camera_database_cache:
+        cache_time = cache_timestamps.get(brand_normalized, 0)
+        if current_time - cache_time < CACHE_TTL:
+            return {
+                "brand": brand_normalized,
+                "cameras": camera_database_cache[brand_normalized],
+                "count": len(camera_database_cache[brand_normalized]),
+                "cached": True
+            }
+    
+    # Scrape data
+    url = CAMERA_BRAND_URLS[brand_normalized]
+    
+    if brand_normalized == "AGFA":
+        cameras = await scrape_wikipedia_agfa(url)
+    else:
+        cameras = await scrape_camera_wiki(brand_normalized, url)
+    
+    # Sort cameras by name
+    cameras.sort(key=lambda x: x['name'].lower())
+    
+    # Remove duplicates
+    seen = set()
+    unique_cameras = []
+    for cam in cameras:
+        if cam['name'] not in seen:
+            seen.add(cam['name'])
+            unique_cameras.append(cam)
+    
+    # Cache results
+    camera_database_cache[brand_normalized] = unique_cameras
+    cache_timestamps[brand_normalized] = current_time
+    
+    return {
+        "brand": brand_normalized,
+        "cameras": unique_cameras,
+        "count": len(unique_cameras),
+        "cached": False
+    }
 
 # ============ EXPORT ENDPOINTS ============
 
