@@ -13,9 +13,20 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as AppleAuthentication from 'expo-apple-authentication';
+import Constants from 'expo-constants';
 import { useAuth } from '../src/contexts/AuthContext';
 import { useTheme } from '../src/contexts/ThemeContext';
+
+// Conditionally import Apple Authentication (not available in Expo Go)
+let AppleAuthentication: any = null;
+const isExpoGo = Constants.appOwnership === 'expo';
+if (!isExpoGo && Platform.OS === 'ios') {
+  try {
+    AppleAuthentication = require('expo-apple-authentication');
+  } catch (e) {
+    console.log('expo-apple-authentication not available');
+  }
+}
 
 const iconDark = require('../assets/images/icon-dark.jpg');
 
@@ -139,8 +150,8 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Apple Sign-In Button - Only shown on iOS */}
-          {Platform.OS === 'ios' && isAppleAuthAvailable && (
+          {/* Apple Sign-In Button - Only shown on iOS native builds, not Expo Go */}
+          {Platform.OS === 'ios' && AppleAuthentication && isAppleAuthAvailable && (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
               buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}

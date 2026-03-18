@@ -1,10 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { API_URL, SESSION_TOKEN_KEY } from '../config';
+
+// Conditionally import Apple Authentication (native module, not available in Expo Go)
+let AppleAuthentication: any = null;
+const isExpoGo = Constants.appOwnership === 'expo';
+if (!isExpoGo && Platform.OS === 'ios') {
+  try {
+    AppleAuthentication = require('expo-apple-authentication');
+  } catch (e) {
+    console.log('expo-apple-authentication not available');
+  }
+}
 
 console.log('AuthContext - API_URL configured as:', API_URL);
 
@@ -41,10 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
 
-  // Check if Apple Auth is available (only on iOS)
+  // Check if Apple Auth is available (only on iOS, and only in native builds, not Expo Go)
   useEffect(() => {
-    if (Platform.OS === 'ios') {
-      AppleAuthentication.isAvailableAsync().then(setIsAppleAuthAvailable);
+    if (Platform.OS === 'ios' && AppleAuthentication) {
+      AppleAuthentication.isAvailableAsync().then((available: boolean) => {
+        setIsAppleAuthAvailable(available);
+      }).catch(() => {
+        setIsAppleAuthAvailable(false);
+      });
     }
   }, []);
 
@@ -378,6 +393,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Login with Apple
   const loginWithApple = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!AppleAuthentication) {
+      return { success: false, error: 'Apple Sign-In not available' };
+    }
+    
     try {
       setIsLoading(true);
       console.log('[AUTH] Starting Apple Sign-In...');
