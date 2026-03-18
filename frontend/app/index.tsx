@@ -15,9 +15,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '../src/contexts/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuthHeaders } from '../src/contexts/AuthContext';
 
-import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
+import { API_URL } from '../src/config';
 
 interface Camera {
   id: string;
@@ -53,11 +53,6 @@ export default function CollectionScreen() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-
-  const getAuthHeaders = async () => {
-    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-  };
 
   const fetchData = async () => {
     try {

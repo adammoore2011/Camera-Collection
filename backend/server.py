@@ -332,6 +332,52 @@ async def require_auth(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return user
 
+async def get_user_or_device(request: Request) -> dict:
+    """Get authenticated user or create/return a device-based anonymous user"""
+    # First try to get authenticated user
+    user = await get_current_user(request)
+    if user:
+        return user
+    
+    # Check for device_id header (for anonymous/local users)
+    device_id = request.headers.get("X-Device-ID")
+    if device_id:
+        # Look for existing device user
+        device_user = await db.users.find_one({"device_id": device_id})
+        if device_user:
+            return {
+                "user_id": device_user["user_id"],
+                "device_id": device_id,
+                "email": device_user.get("email"),
+                "name": device_user.get("name", "Local User"),
+                "is_device_user": True
+            }
+        else:
+            # Create new device user
+            user_id = f"device_{device_id[:12]}"
+            new_user = {
+                "user_id": user_id,
+                "device_id": device_id,
+                "name": "Local User",
+                "is_device_user": True,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            await db.users.insert_one(new_user)
+            return {
+                "user_id": user_id,
+                "device_id": device_id,
+                "name": "Local User",
+                "is_device_user": True
+            }
+    
+    # No auth and no device ID - use a default anonymous user for this request
+    return {
+        "user_id": "anonymous",
+        "name": "Anonymous",
+        "is_device_user": True
+    }
+
 # Helper functions
 def camera_helper(camera) -> dict:
     return {
@@ -780,7 +826,7 @@ async def get_options():
 @api_router.get("/stats")
 async def get_collection_stats(request: Request):
     """Get comprehensive collection statistics"""
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     
     cameras = []
     async for camera in db.cameras.find({"user_id": user["user_id"]}):
@@ -893,7 +939,7 @@ async def get_collection_stats(request: Request):
 
 @api_router.get("/cameras", response_model=List[Camera])
 async def get_all_cameras(request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     cameras = []
     async for camera in db.cameras.find({"user_id": user["user_id"]}).sort("created_at", -1):
         cameras.append(camera_helper(camera))
@@ -901,7 +947,7 @@ async def get_all_cameras(request: Request):
 
 @api_router.get("/cameras/{camera_id}", response_model=Camera)
 async def get_camera(camera_id: str, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         camera = await db.cameras.find_one({
             "_id": ObjectId(camera_id),
@@ -915,7 +961,7 @@ async def get_camera(camera_id: str, request: Request):
 
 @api_router.post("/cameras", response_model=Camera)
 async def create_camera(camera: CameraCreate, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     camera_dict = camera.dict()
     camera_dict["user_id"] = user["user_id"]
     camera_dict["created_at"] = datetime.utcnow()
@@ -926,7 +972,7 @@ async def create_camera(camera: CameraCreate, request: Request):
 
 @api_router.put("/cameras/{camera_id}", response_model=Camera)
 async def update_camera(camera_id: str, camera_update: CameraUpdate, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         update_data = {k: v for k, v in camera_update.dict().items() if v is not None}
         if not update_data:
@@ -955,7 +1001,7 @@ async def update_camera(camera_id: str, camera_update: CameraUpdate, request: Re
 
 @api_router.delete("/cameras/{camera_id}")
 async def delete_camera(camera_id: str, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         result = await db.cameras.delete_one({
             "_id": ObjectId(camera_id),
@@ -973,7 +1019,7 @@ async def delete_camera(camera_id: str, request: Request):
 
 @api_router.get("/wishlist", response_model=List[WishlistItem])
 async def get_all_wishlist_items(request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     items = []
     async for item in db.wishlist.find({"user_id": user["user_id"]}).sort("created_at", -1):
         items.append(wishlist_helper(item))
@@ -981,7 +1027,7 @@ async def get_all_wishlist_items(request: Request):
 
 @api_router.get("/wishlist/{item_id}", response_model=WishlistItem)
 async def get_wishlist_item(item_id: str, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         item = await db.wishlist.find_one({
             "_id": ObjectId(item_id),
@@ -995,7 +1041,7 @@ async def get_wishlist_item(item_id: str, request: Request):
 
 @api_router.post("/wishlist", response_model=WishlistItem)
 async def create_wishlist_item(item: WishlistItemCreate, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     item_dict = item.dict()
     item_dict["user_id"] = user["user_id"]
     item_dict["created_at"] = datetime.utcnow()
@@ -1006,7 +1052,7 @@ async def create_wishlist_item(item: WishlistItemCreate, request: Request):
 
 @api_router.put("/wishlist/{item_id}", response_model=WishlistItem)
 async def update_wishlist_item(item_id: str, item_update: WishlistItemUpdate, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         update_data = {k: v for k, v in item_update.dict().items() if v is not None}
         if not update_data:
@@ -1035,7 +1081,7 @@ async def update_wishlist_item(item_id: str, item_update: WishlistItemUpdate, re
 
 @api_router.delete("/wishlist/{item_id}")
 async def delete_wishlist_item(item_id: str, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         result = await db.wishlist.delete_one({
             "_id": ObjectId(item_id),
@@ -1051,7 +1097,7 @@ async def delete_wishlist_item(item_id: str, request: Request):
 
 @api_router.post("/wishlist/{item_id}/to-collection", response_model=Camera)
 async def move_to_collection(item_id: str, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         item = await db.wishlist.find_one({
             "_id": ObjectId(item_id),
@@ -1087,7 +1133,7 @@ async def move_to_collection(item_id: str, request: Request):
 
 @api_router.get("/accessories", response_model=List[Accessory])
 async def get_all_accessories(request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     accessories = []
     async for accessory in db.accessories.find({"user_id": user["user_id"]}).sort("created_at", -1):
         accessories.append(accessory_helper(accessory))
@@ -1095,7 +1141,7 @@ async def get_all_accessories(request: Request):
 
 @api_router.get("/accessories/{accessory_id}", response_model=Accessory)
 async def get_accessory(accessory_id: str, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         accessory = await db.accessories.find_one({
             "_id": ObjectId(accessory_id),
@@ -1109,7 +1155,7 @@ async def get_accessory(accessory_id: str, request: Request):
 
 @api_router.post("/accessories", response_model=Accessory)
 async def create_accessory(accessory: AccessoryCreate, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     accessory_dict = accessory.dict()
     accessory_dict["user_id"] = user["user_id"]
     accessory_dict["created_at"] = datetime.utcnow()
@@ -1120,7 +1166,7 @@ async def create_accessory(accessory: AccessoryCreate, request: Request):
 
 @api_router.put("/accessories/{accessory_id}", response_model=Accessory)
 async def update_accessory(accessory_id: str, accessory_update: AccessoryUpdate, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         update_data = {k: v for k, v in accessory_update.dict().items() if v is not None}
         if not update_data:
@@ -1149,7 +1195,7 @@ async def update_accessory(accessory_id: str, accessory_update: AccessoryUpdate,
 
 @api_router.delete("/accessories/{accessory_id}")
 async def delete_accessory(accessory_id: str, request: Request):
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     try:
         result = await db.accessories.delete_one({
             "_id": ObjectId(accessory_id),
@@ -1524,7 +1570,7 @@ async def get_cameras_by_brand(brand: str):
 @api_router.get("/export/collection")
 async def export_collection(request: Request):
     """Export entire collection as JSON"""
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     
     cameras = []
     async for camera in db.cameras.find({"user_id": user["user_id"]}):
@@ -1560,7 +1606,7 @@ async def export_collection(request: Request):
 @api_router.get("/export/csv")
 async def export_csv(request: Request):
     """Export cameras as CSV format data"""
-    user = await require_auth(request)
+    user = await get_user_or_device(request)
     
     cameras = []
     async for camera in db.cameras.find({"user_id": user["user_id"]}):

@@ -17,6 +17,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
+import { getAuthHeaders } from '../src/contexts/AuthContext';
 
 interface WishlistItem {
   id: string;
@@ -45,9 +46,6 @@ export default function WishlistScreen() {
     low: theme.priorityLow,
   };
 
-  const getAuthHeaders = async () => {
-    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
   const fetchWishlist = async () => {

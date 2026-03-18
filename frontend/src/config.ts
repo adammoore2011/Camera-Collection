@@ -1,4 +1,6 @@
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
+import { Platform } from 'react-native';
 
 // Production API URL - MUST be hardcoded for App Store builds
 // Expo Go uses process.env, but production builds need this hardcoded value
@@ -15,6 +17,36 @@ export const API_URL =
 
 // Session token key for AsyncStorage
 export const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
+
+// Device ID key for AsyncStorage (for anonymous users)
+export const DEVICE_ID_KEY = '@vintage_camera_device_id';
+
+// Get or generate a unique device ID
+export const getDeviceId = async (): Promise<string> => {
+  const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+  
+  // First check if we have a stored device ID
+  let deviceId = await AsyncStorage.getItem(DEVICE_ID_KEY);
+  
+  if (!deviceId) {
+    // Generate a new device ID
+    if (Platform.OS === 'ios') {
+      // On iOS, use a combination of identifiers
+      deviceId = Application.applicationId + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+    } else if (Platform.OS === 'android') {
+      // On Android
+      deviceId = (Application.applicationId || 'android') + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+    } else {
+      // Web fallback
+      deviceId = 'web_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    // Store it
+    await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId);
+  }
+  
+  return deviceId;
+};
 
 // Log the API URL for debugging
 console.log('Config - API_URL:', API_URL);

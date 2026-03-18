@@ -9,7 +9,7 @@ import AuthCallbackScreen from './auth-callback';
 
 function TabLayoutContent() {
   const { theme } = useTheme();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const segments = useSegments();
   
   // Check if we're on the auth-callback route
@@ -20,7 +20,7 @@ function TabLayoutContent() {
     return <AuthCallbackScreen />;
   }
   
-  // Show loading while checking auth
+  // Show loading while checking auth (brief check on startup)
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
@@ -29,10 +29,8 @@ function TabLayoutContent() {
     );
   }
   
-  // Show login if not authenticated
-  if (!isAuthenticated) {
-    return <LoginScreen />;
-  }
+  // No login required - app works without authentication
+  // Users can sign in from Settings if they want to sync
   
   return (
     <Tabs

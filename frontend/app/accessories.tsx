@@ -17,6 +17,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
+import { getAuthHeaders } from '../src/contexts/AuthContext';
 
 interface Accessory {
   id: string;
@@ -62,11 +63,6 @@ export default function AccessoriesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const getAuthHeaders = async () => {
-    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-  };
 
   const fetchAccessories = async () => {
     try {
@@ -170,6 +166,7 @@ export default function AccessoriesScreen() {
     </TouchableOpacity>
   );
 
+  // Main component render
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>

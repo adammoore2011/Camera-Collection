@@ -19,6 +19,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
+import { getAuthHeaders } from '../src/contexts/AuthContext';
 
 const CONDITIONS = ['Mint', 'Excellent', 'Good', 'Fair', 'For Parts'];
 
@@ -72,9 +73,6 @@ export default function AddCameraScreen() {
   const [showAccessoryTypeSelector, setShowAccessoryTypeSelector] = useState(false);
   const [showConditionSelector, setShowConditionSelector] = useState(false);
 
-  const getAuthHeaders = async () => {
-    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
   useEffect(() => {

@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
+import { getAuthHeaders } from '../src/contexts/AuthContext';
 
 interface CameraData {
   name: string;
@@ -51,9 +52,6 @@ export default function ImportScreen() {
   const [showBrandPicker, setShowBrandPicker] = useState(false);
   const [importTarget, setImportTarget] = useState<'collection' | 'wishlist'>('wishlist');
 
-  const getAuthHeaders = async () => {
-    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
   // Fetch available brands on mount

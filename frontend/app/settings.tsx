@@ -20,6 +20,7 @@ import { useTheme, themes, ThemeName } from '../src/contexts/ThemeContext';
 import { useAuth } from '../src/contexts/AuthContext';
 
 import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
+import { getAuthHeaders } from '../src/contexts/AuthContext';
 
 const iconPink = require('../assets/images/icon-pink.jpg');
 const iconBlue = require('../assets/images/icon-blue.jpg');
@@ -41,9 +42,6 @@ export default function SettingsScreen() {
   const [exporting, setExporting] = useState(false);
   const router = useRouter();
 
-  const getAuthHeaders = async () => {
-    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
   const themeOptions: { key: ThemeName; description: string }[] = [

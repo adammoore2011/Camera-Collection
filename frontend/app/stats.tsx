@@ -15,6 +15,7 @@ import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
+import { getAuthHeaders } from '../src/contexts/AuthContext';
 const screenWidth = Dimensions.get('window').width;
 
 interface Stats {
@@ -49,9 +50,6 @@ export default function StatsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'value' | 'breakdown'>('overview');
 
-  const getAuthHeaders = async () => {
-    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
   const fetchStats = async () => {

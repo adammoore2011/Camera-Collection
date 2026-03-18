@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../src/contexts/ThemeContext';
 
 import { API_URL, SESSION_TOKEN_KEY } from '../../src/config';
+import { getAuthHeaders } from '../../src/contexts/AuthContext';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const CONDITIONS = ['Mint', 'Excellent', 'Good', 'Fair', 'For Parts'];

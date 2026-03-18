@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { API_URL, SESSION_TOKEN_KEY } from '../../src/config';
+import { getAuthHeaders } from '../../src/contexts/AuthContext';
 
 interface WishlistItem {
   id: string;

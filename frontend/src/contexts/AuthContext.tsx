@@ -4,7 +4,7 @@ import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { API_URL, SESSION_TOKEN_KEY } from '../config';
+import { API_URL, SESSION_TOKEN_KEY, DEVICE_ID_KEY, getDeviceId } from '../config';
 
 // Conditionally import Apple Authentication (native module, not available in Expo Go)
 let AppleAuthentication: any = null;
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
 
   // Check if Apple Auth is available (only on iOS, and only in native builds, not Expo Go)
@@ -61,6 +62,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAppleAuthAvailable(false);
       });
     }
+  }, []);
+
+  // Initialize device ID on startup
+  useEffect(() => {
+    const initDeviceId = async () => {
+      const id = await getDeviceId();
+      setDeviceId(id);
+      console.log('[AUTH] Device ID initialized:', id);
+    };
+    initDeviceId();
   }, []);
 
   // Check authentication status
@@ -518,13 +529,41 @@ export function useAuth() {
   return context;
 }
 
-// Helper hook to get auth headers
+// Helper hook to get auth headers (includes device ID for anonymous users)
 export function useAuthHeaders() {
-  const [token, setToken] = useState<string | null>(null);
+  const [headers, setHeaders] = useState<Record<string, string>>({});
   
   useEffect(() => {
-    AsyncStorage.getItem(SESSION_TOKEN_KEY).then(setToken);
+    const loadHeaders = async () => {
+      const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+      const deviceId = await getDeviceId();
+      
+      const h: Record<string, string> = {};
+      if (token) {
+        h['Authorization'] = `Bearer ${token}`;
+      }
+      if (deviceId) {
+        h['X-Device-ID'] = deviceId;
+      }
+      setHeaders(h);
+    };
+    loadHeaders();
   }, []);
   
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
+  return headers;
+}
+
+// Standalone function to get auth headers (for use outside of components)
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+  const deviceId = await getDeviceId();
+  
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (deviceId) {
+    headers['X-Device-ID'] = deviceId;
+  }
+  return headers;
 }
