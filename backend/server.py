@@ -621,6 +621,103 @@ async def get_options():
         "conditions": CONDITIONS
     }
 
+# ============ CAMERA DATABASE (Pre-built list for import) ============
+
+BROWNIE_CAMERAS = [
+    {"name": "The Brownie", "brand": "Kodak", "year": "1900", "camera_type": "Film Camera", "film_format": "117 Film", "notes": "The 1st Brownie Camera - revolutionary box camera that made photography accessible to everyone"},
+    {"name": "Brownie II (110 Cartridge)", "brand": "Kodak", "year": "1980s", "camera_type": "Film Camera", "film_format": "110 Film", "notes": "The Last Brownie Camera"},
+    {"name": "Baby Brownie", "brand": "Kodak", "year": "1934-1941", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Compact bakelite camera"},
+    {"name": "Baby Brownie New York World's Fair", "brand": "Kodak", "year": "1939-1940", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Special edition for NY World's Fair"},
+    {"name": "Baby Brownie Special", "brand": "Kodak", "year": "1939-1954", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Boy Scout Brownie", "brand": "Kodak", "year": "1932", "camera_type": "Film Camera", "film_format": "120 Film", "notes": "Official Boy Scouts of America edition"},
+    {"name": "Brownie 127", "brand": "Kodak", "year": "1952-1959", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "First model"},
+    {"name": "Brownie 127 (second model)", "brand": "Kodak", "year": "1959-1963", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Second model"},
+    {"name": "Brownie 127 (third model)", "brand": "Kodak", "year": "1965-1967", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Third model"},
+    {"name": "Brownie 44A", "brand": "Kodak", "year": "1959-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie 44B", "brand": "Kodak", "year": "1961-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie 620", "brand": "Kodak", "year": "1940s", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
+    {"name": "Brownie Auto 27", "brand": "Kodak", "year": "1963-1964", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Bullet", "brand": "Kodak", "year": "1957-1964", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Bullet II", "brand": "Kodak", "year": "1961-1968", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Bulls-Eye", "brand": "Kodak", "year": "1954-1960", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
+    {"name": "Brownie Cresta", "brand": "Kodak", "year": "1955-1958", "camera_type": "Film Camera", "film_format": "120 Film", "notes": ""},
+    {"name": "Brownie Cresta II", "brand": "Kodak", "year": "1956-1959", "camera_type": "Film Camera", "film_format": "120 Film", "notes": ""},
+    {"name": "Brownie Cresta 3", "brand": "Kodak", "year": "1960-1965", "camera_type": "Film Camera", "film_format": "120 Film", "notes": ""},
+    {"name": "Brownie Fiesta", "brand": "Kodak", "year": "1962-1966", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Flash 20", "brand": "Kodak", "year": "1959-1962", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
+    {"name": "Brownie Flash B", "brand": "Kodak", "year": "1957-1960", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Flash II", "brand": "Kodak", "year": "1957-1960", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Flash III", "brand": "Kodak", "year": "1957-1960", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Flash IV", "brand": "Kodak", "year": "1957-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Flash Six-20", "brand": "Kodak", "year": "1940-1954", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
+    {"name": "Brownie Hawkeye", "brand": "Kodak", "year": "1949-1961", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "One of the most popular Brownies"},
+    {"name": "Brownie Hawkeye Flash Model", "brand": "Kodak", "year": "1950-1961", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "With flash capability"},
+    {"name": "Brownie Holiday", "brand": "Kodak", "year": "1953-1957", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Reflex", "brand": "Kodak", "year": "1940-1941", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "TLR-style viewfinder"},
+    {"name": "Brownie Reflex 20", "brand": "Kodak", "year": "1959-1966", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
+    {"name": "Brownie Starflash", "brand": "Kodak", "year": "1957-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Available in multiple colors"},
+    {"name": "Brownie Starflex", "brand": "Kodak", "year": "1957-1964", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Pseudo-TLR design"},
+    {"name": "Brownie Starlet", "brand": "Kodak", "year": "1957-1962", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Starmatic", "brand": "Kodak", "year": "1959-1963", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Auto exposure"},
+    {"name": "Brownie Starmeter", "brand": "Kodak", "year": "1960-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "With light meter"},
+    {"name": "Brownie Starmite", "brand": "Kodak", "year": "1960-1963", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Starmite II", "brand": "Kodak", "year": "1962-1967", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Super 27", "brand": "Kodak", "year": "1961-1965", "camera_type": "Film Camera", "film_format": "127 Film", "notes": ""},
+    {"name": "Brownie Target Six-16", "brand": "Kodak", "year": "1946-1951", "camera_type": "Film Camera", "film_format": "616 Film", "notes": ""},
+    {"name": "Brownie Target Six-20", "brand": "Kodak", "year": "1941-1952", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
+    {"name": "Brownie Twin 20", "brand": "Kodak", "year": "1959-1964", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "Dual lens design"},
+    {"name": "Brownie Vecta", "brand": "Kodak", "year": "1963-1966", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "UK model"},
+    {"name": "No.0 Brownie", "brand": "Kodak", "year": "1914-1935", "camera_type": "Film Camera", "film_format": "127 Film", "notes": "Smallest box Brownie"},
+    {"name": "No.1 Brownie", "brand": "Kodak", "year": "1901-1915", "camera_type": "Film Camera", "film_format": "117 Film", "notes": ""},
+    {"name": "No.2 Beau Brownie", "brand": "Kodak", "year": "1930-1933", "camera_type": "Film Camera", "film_format": "120 Film", "notes": "Art Deco design by Walter Dorwin Teague"},
+    {"name": "No.2 Brownie", "brand": "Kodak", "year": "1901-1935", "camera_type": "Film Camera", "film_format": "120 Film", "notes": ""},
+    {"name": "No.2A Beau Brownie", "brand": "Kodak", "year": "1930-1933", "camera_type": "Film Camera", "film_format": "116 Film", "notes": "Art Deco design"},
+    {"name": "No.2A Brownie", "brand": "Kodak", "year": "1907-1933", "camera_type": "Film Camera", "film_format": "116 Film", "notes": ""},
+    {"name": "No.2C Brownie", "brand": "Kodak", "year": "1917-1934", "camera_type": "Film Camera", "film_format": "130 Film", "notes": ""},
+    {"name": "No.3 Brownie", "brand": "Kodak", "year": "1908-1934", "camera_type": "Film Camera", "film_format": "124 Film", "notes": ""},
+    {"name": "Popular Brownie", "brand": "Kodak", "year": "1937-1941", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "UK model"},
+    {"name": "Six-16 Brownie", "brand": "Kodak", "year": "1933-1941", "camera_type": "Film Camera", "film_format": "616 Film", "notes": ""},
+    {"name": "Six-16 Brownie Junior", "brand": "Kodak", "year": "1934-1942", "camera_type": "Film Camera", "film_format": "616 Film", "notes": ""},
+    {"name": "Six-20 Brownie", "brand": "Kodak", "year": "1933-1941", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
+    {"name": "Six-20 Brownie Junior", "brand": "Kodak", "year": "1934-1942", "camera_type": "Film Camera", "film_format": "620 Film", "notes": ""},
+    {"name": "Six-20 Folding Brownie", "brand": "Kodak", "year": "1937-1940", "camera_type": "Film Camera", "film_format": "620 Film", "notes": "Folding design"},
+    {"name": "No.2 Folding Brownie", "brand": "Kodak", "year": "1904-1907", "camera_type": "Film Camera", "film_format": "120 Film", "notes": "Folding design"},
+    {"name": "No.2 Stereo Brownie", "brand": "Kodak", "year": "1905-1910", "camera_type": "Film Camera", "film_format": "120 Film", "notes": "Stereo/3D photography"},
+]
+
+@api_router.get("/camera-database")
+async def get_camera_database():
+    """Get pre-built camera database for importing"""
+    return {
+        "brownie": BROWNIE_CAMERAS,
+        "total": len(BROWNIE_CAMERAS)
+    }
+
+@api_router.post("/import-to-wishlist")
+async def import_cameras_to_wishlist(request: Request, cameras: List[dict]):
+    """Import multiple cameras to wishlist"""
+    user = await require_auth(request)
+    imported = []
+    
+    for camera in cameras:
+        camera_dict = {
+            "user_id": user["user_id"],
+            "name": camera.get("name", ""),
+            "brand": camera.get("brand", "Kodak"),
+            "camera_type": camera.get("camera_type", "Film Camera"),
+            "film_format": camera.get("film_format", "120 Film"),
+            "year": camera.get("year"),
+            "notes": camera.get("notes"),
+            "image": None,
+            "priority": "medium",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        result = await db.wishlist.insert_one(camera_dict)
+        imported.append(str(result.inserted_id))
+    
+    return {"imported": len(imported), "ids": imported}
+
 # ============ STATS ENDPOINT ============
 
 @api_router.get("/stats")
