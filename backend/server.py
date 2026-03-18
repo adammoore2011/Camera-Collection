@@ -152,6 +152,14 @@ class SessionData(BaseModel):
 
 # ============ CAMERA MODELS ============
 
+# Condition options
+CONDITIONS = ["Mint", "Excellent", "Good", "Fair", "For Parts"]
+
+class ServiceHistoryEntry(BaseModel):
+    date: str
+    description: str
+    cost: Optional[float] = None
+
 class CameraBase(BaseModel):
     name: str
     brand: str
@@ -160,7 +168,16 @@ class CameraBase(BaseModel):
     year: Optional[str] = None
     notes: Optional[str] = None
     image: Optional[str] = None
-    images: Optional[List[str]] = None  # Multiple images support
+    images: Optional[List[str]] = None
+    # Value tracking
+    estimated_value: Optional[float] = None
+    purchase_price: Optional[float] = None
+    purchase_date: Optional[str] = None
+    purchase_location: Optional[str] = None
+    # Condition
+    condition: Optional[str] = None
+    # Service history
+    service_history: Optional[List[dict]] = None
 
 class CameraCreate(CameraBase):
     pass
@@ -173,7 +190,13 @@ class CameraUpdate(BaseModel):
     year: Optional[str] = None
     notes: Optional[str] = None
     image: Optional[str] = None
-    images: Optional[List[str]] = None  # Multiple images support
+    images: Optional[List[str]] = None
+    estimated_value: Optional[float] = None
+    purchase_price: Optional[float] = None
+    purchase_date: Optional[str] = None
+    purchase_location: Optional[str] = None
+    condition: Optional[str] = None
+    service_history: Optional[List[dict]] = None
 
 class Camera(CameraBase):
     id: str
@@ -322,6 +345,14 @@ def camera_helper(camera) -> dict:
         "notes": camera.get("notes"),
         "image": camera.get("image"),
         "images": camera.get("images", []),
+        # Value tracking fields
+        "estimated_value": camera.get("estimated_value"),
+        "purchase_price": camera.get("purchase_price"),
+        "purchase_date": camera.get("purchase_date"),
+        "purchase_location": camera.get("purchase_location"),
+        # Condition and service history
+        "condition": camera.get("condition"),
+        "service_history": camera.get("service_history", []),
         "created_at": camera.get("created_at", datetime.utcnow()),
         "updated_at": camera.get("updated_at", datetime.utcnow())
     }
@@ -586,7 +617,122 @@ async def get_options():
     return {
         "camera_types": CAMERA_TYPES,
         "film_formats": FILM_FORMATS,
-        "accessory_types": ACCESSORY_TYPES
+        "accessory_types": ACCESSORY_TYPES,
+        "conditions": CONDITIONS
+    }
+
+# ============ STATS ENDPOINT ============
+
+@api_router.get("/stats")
+async def get_collection_stats(request: Request):
+    """Get comprehensive collection statistics"""
+    user = await require_auth(request)
+    
+    cameras = []
+    async for camera in db.cameras.find({"user_id": user["user_id"]}):
+        cameras.append(camera)
+    
+    wishlist = []
+    async for item in db.wishlist.find({"user_id": user["user_id"]}):
+        wishlist.append(item)
+    
+    accessories = []
+    async for acc in db.accessories.find({"user_id": user["user_id"]}):
+        accessories.append(acc)
+    
+    # Calculate value statistics
+    total_estimated_value = sum(c.get("estimated_value", 0) or 0 for c in cameras)
+    total_purchase_price = sum(c.get("purchase_price", 0) or 0 for c in cameras)
+    cameras_with_value = [c for c in cameras if c.get("estimated_value")]
+    avg_camera_value = total_estimated_value / len(cameras_with_value) if cameras_with_value else 0
+    
+    # Value appreciation
+    value_appreciation = total_estimated_value - total_purchase_price if total_purchase_price > 0 else 0
+    appreciation_percentage = (value_appreciation / total_purchase_price * 100) if total_purchase_price > 0 else 0
+    
+    # Count by type
+    type_counts = {}
+    type_values = {}
+    for camera in cameras:
+        cam_type = camera.get("camera_type", "Unknown")
+        type_counts[cam_type] = type_counts.get(cam_type, 0) + 1
+        type_values[cam_type] = type_values.get(cam_type, 0) + (camera.get("estimated_value", 0) or 0)
+    
+    # Count by film format
+    format_counts = {}
+    for camera in cameras:
+        fmt = camera.get("film_format", "Unknown")
+        format_counts[fmt] = format_counts.get(fmt, 0) + 1
+    
+    # Count by condition
+    condition_counts = {}
+    for camera in cameras:
+        cond = camera.get("condition", "Not Specified")
+        condition_counts[cond] = condition_counts.get(cond, 0) + 1
+    
+    # Count by decade
+    decade_counts = {}
+    for camera in cameras:
+        year_str = camera.get("year", "")
+        if year_str:
+            try:
+                # Extract first 4 digits that look like a year
+                import re
+                year_match = re.search(r'\d{4}', year_str)
+                if year_match:
+                    year = int(year_match.group())
+                    decade = (year // 10) * 10
+                    decade_label = f"{decade}s"
+                    decade_counts[decade_label] = decade_counts.get(decade_label, 0) + 1
+            except:
+                pass
+    
+    # Sort decades
+    decade_counts = dict(sorted(decade_counts.items()))
+    
+    # Count by brand
+    brand_counts = {}
+    for camera in cameras:
+        brand = camera.get("brand", "Unknown")
+        brand_counts[brand] = brand_counts.get(brand, 0) + 1
+    
+    # Top 5 most valuable cameras
+    valuable_cameras = sorted(
+        [c for c in cameras if c.get("estimated_value")],
+        key=lambda x: x.get("estimated_value", 0),
+        reverse=True
+    )[:5]
+    
+    top_valuable = [
+        {
+            "id": str(c["_id"]),
+            "name": c["name"],
+            "brand": c["brand"],
+            "estimated_value": c.get("estimated_value")
+        }
+        for c in valuable_cameras
+    ]
+    
+    return {
+        "total_cameras": len(cameras),
+        "total_wishlist": len(wishlist),
+        "total_accessories": len(accessories),
+        # Value statistics
+        "total_estimated_value": round(total_estimated_value, 2),
+        "total_purchase_price": round(total_purchase_price, 2),
+        "average_camera_value": round(avg_camera_value, 2),
+        "value_appreciation": round(value_appreciation, 2),
+        "appreciation_percentage": round(appreciation_percentage, 1),
+        "cameras_with_value_count": len(cameras_with_value),
+        # Breakdowns
+        "by_type": type_counts,
+        "by_type_value": type_values,
+        "by_format": format_counts,
+        "by_condition": condition_counts,
+        "by_decade": decade_counts,
+        "by_brand": brand_counts,
+        # Top valuable
+        "top_valuable_cameras": top_valuable
     }
 
 # ============ COLLECTION ENDPOINTS (Protected) ============

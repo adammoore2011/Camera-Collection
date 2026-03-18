@@ -21,10 +21,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
+const CONDITIONS = ['Mint', 'Excellent', 'Good', 'Fair', 'For Parts'];
+
 interface Options {
   camera_types: string[];
   film_formats: string[];
   accessory_types: string[];
+  conditions: string[];
 }
 
 type ItemMode = 'collection' | 'wishlist' | 'accessory';
@@ -36,6 +39,7 @@ export default function AddCameraScreen() {
     camera_types: [],
     film_formats: [],
     accessory_types: [],
+    conditions: CONDITIONS,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,6 +57,13 @@ export default function AddCameraScreen() {
   const [filmFormat, setFilmFormat] = useState('');
   const [priority, setPriority] = useState('medium');
 
+  // New value tracking fields
+  const [estimatedValue, setEstimatedValue] = useState('');
+  const [purchasePrice, setPurchasePrice] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState('');
+  const [purchaseLocation, setPurchaseLocation] = useState('');
+  const [condition, setCondition] = useState('');
+
   // Accessory fields
   const [accessoryType, setAccessoryType] = useState('');
   const [compatibleWith, setCompatibleWith] = useState('');
@@ -60,6 +71,7 @@ export default function AddCameraScreen() {
   const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [showFormatSelector, setShowFormatSelector] = useState(false);
   const [showAccessoryTypeSelector, setShowAccessoryTypeSelector] = useState(false);
+  const [showConditionSelector, setShowConditionSelector] = useState(false);
 
   const getAuthHeaders = async () => {
     const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
@@ -95,6 +107,11 @@ export default function AddCameraScreen() {
     setPriority('medium');
     setAccessoryType('');
     setCompatibleWith('');
+    setEstimatedValue('');
+    setPurchasePrice('');
+    setPurchaseDate('');
+    setPurchaseLocation('');
+    setCondition('');
   };
 
   const pickImage = async () => {
@@ -195,6 +212,12 @@ export default function AddCameraScreen() {
         year: year.trim() || null,
         notes: notes.trim() || null,
         image: image,
+        images: image ? [image] : [],
+        estimated_value: estimatedValue ? parseFloat(estimatedValue) : null,
+        purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
+        purchase_date: purchaseDate.trim() || null,
+        purchase_location: purchaseLocation.trim() || null,
+        condition: condition || null,
       };
     }
 
@@ -539,6 +562,126 @@ export default function AddCameraScreen() {
             />
           </View>
 
+          {/* Value & Condition fields - only for collection mode */}
+          {mode === 'collection' && (
+            <>
+              <View style={[styles.sectionDivider, { borderColor: theme.border }]}>
+                <Text style={[styles.sectionDividerText, { color: theme.textSecondary }]}>Value & Condition</Text>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: theme.primary }]}>Condition</Text>
+                <TouchableOpacity
+                  style={[styles.selector, { backgroundColor: theme.surface }]}
+                  onPress={() => setShowConditionSelector(!showConditionSelector)}
+                >
+                  <Text
+                    style={[
+                      styles.selectorText,
+                      { color: condition ? (
+                        condition === 'Mint' ? '#27AE60' :
+                        condition === 'Excellent' ? '#2ECC71' :
+                        condition === 'Good' ? '#F39C12' :
+                        condition === 'Fair' ? '#E67E22' : '#E74C3C'
+                      ) : theme.textMuted },
+                    ]}
+                  >
+                    {condition || 'Select condition'}
+                  </Text>
+                  <Ionicons
+                    name={showConditionSelector ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color={theme.textSecondary}
+                  />
+                </TouchableOpacity>
+                {showConditionSelector && (
+                  <View style={[styles.optionsList, { backgroundColor: theme.surface }]}>
+                    {CONDITIONS.map((cond) => (
+                      <TouchableOpacity
+                        key={cond}
+                        style={[
+                          styles.optionItem,
+                          { borderBottomColor: theme.border },
+                          condition === cond && { backgroundColor: 
+                            cond === 'Mint' ? '#27AE60' :
+                            cond === 'Excellent' ? '#2ECC71' :
+                            cond === 'Good' ? '#F39C12' :
+                            cond === 'Fair' ? '#E67E22' : '#E74C3C'
+                          },
+                        ]}
+                        onPress={() => {
+                          setCondition(cond);
+                          setShowConditionSelector(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.optionText,
+                            { color: condition === cond ? '#fff' : (
+                              cond === 'Mint' ? '#27AE60' :
+                              cond === 'Excellent' ? '#2ECC71' :
+                              cond === 'Good' ? '#F39C12' :
+                              cond === 'Fair' ? '#E67E22' : '#E74C3C'
+                            )},
+                          ]}
+                        >
+                          {cond}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.rowInputs}>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                  <Text style={[styles.label, { color: theme.primary }]}>Est. Value ($)</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.textMuted}
+                    value={estimatedValue}
+                    onChangeText={setEstimatedValue}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                  <Text style={[styles.label, { color: theme.primary }]}>Paid ($)</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
+                    placeholder="0.00"
+                    placeholderTextColor={theme.textMuted}
+                    value={purchasePrice}
+                    onChangeText={setPurchasePrice}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: theme.primary }]}>Purchase Date</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
+                  placeholder="e.g., 2024-01-15 or January 2024"
+                  placeholderTextColor={theme.textMuted}
+                  value={purchaseDate}
+                  onChangeText={setPurchaseDate}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: theme.primary }]}>Purchase Location</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
+                  placeholder="e.g., eBay, Estate Sale, Camera Shop"
+                  placeholderTextColor={theme.textMuted}
+                  value={purchaseLocation}
+                  onChangeText={setPurchaseLocation}
+                />
+              </View>
+            </>
+          )}
+
           {mode === 'wishlist' && (
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.primary }]}>Priority</Text>
@@ -732,6 +875,21 @@ const styles = StyleSheet.create({
   },
   priorityText: {
     fontWeight: '600',
+  },
+  sectionDivider: {
+    borderTopWidth: 1,
+    paddingTop: 16,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  sectionDividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  rowInputs: {
+    flexDirection: 'row',
   },
   saveButton: {
     flexDirection: 'row',

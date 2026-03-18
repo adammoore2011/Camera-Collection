@@ -7,9 +7,10 @@ import {
   RefreshControl,
   ActivityIndicator,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -17,41 +18,53 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 const screenWidth = Dimensions.get('window').width;
 
-interface Camera {
-  id: string;
-  name: string;
-  brand: string;
-  camera_type: string;
-  film_format: string;
-  year?: string;
-}
-
-interface YearData {
-  decade: string;
-  count: number;
+interface Stats {
+  total_cameras: number;
+  total_wishlist: number;
+  total_accessories: number;
+  total_estimated_value: number;
+  total_purchase_price: number;
+  average_camera_value: number;
+  value_appreciation: number;
+  appreciation_percentage: number;
+  cameras_with_value_count: number;
+  by_type: { [key: string]: number };
+  by_type_value: { [key: string]: number };
+  by_format: { [key: string]: number };
+  by_condition: { [key: string]: number };
+  by_decade: { [key: string]: number };
+  by_brand: { [key: string]: number };
+  top_valuable_cameras: Array<{
+    id: string;
+    name: string;
+    brand: string;
+    estimated_value: number;
+  }>;
 }
 
 export default function StatsScreen() {
   const { theme } = useTheme();
-  const [cameras, setCameras] = useState<Camera[]>([]);
+  const router = useRouter();
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeSection, setActiveSection] = useState<'overview' | 'value' | 'breakdown'>('overview');
 
   const getAuthHeaders = async () => {
     const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
     return token ? { 'Authorization': `Bearer ${token}` } : {};
   };
 
-  const fetchCameras = async () => {
+  const fetchStats = async () => {
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_URL}/api/cameras`, { headers });
+      const response = await fetch(`${API_URL}/api/stats`, { headers });
       if (response.ok) {
         const data = await response.json();
-        setCameras(data);
+        setStats(data);
       }
     } catch (error) {
-      console.error('Error fetching cameras:', error);
+      console.error('Error fetching stats:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,77 +73,94 @@ export default function StatsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchCameras();
+      fetchStats();
     }, [])
   );
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchCameras();
+    fetchStats();
   };
 
-  // Parse years and create histogram data
-  const getYearHistogramData = (): YearData[] => {
-    const yearCounts: { [key: string]: number } = {};
-    
-    cameras.forEach((camera) => {
-      if (camera.year) {
-        let yearKey = camera.year.trim();
-        
-        const yearMatch = yearKey.match(/(\d{4})/);
-        if (yearMatch) {
-          const year = parseInt(yearMatch[1]);
-          const decade = Math.floor(year / 10) * 10;
-          yearKey = `${decade}s`;
-        } else if (yearKey.toLowerCase().includes('s')) {
-          const decadeMatch = yearKey.match(/(\d{4})s/i);
-          if (decadeMatch) {
-            yearKey = `${decadeMatch[1]}s`;
-          }
-        }
-        
-        yearCounts[yearKey] = (yearCounts[yearKey] || 0) + 1;
-      }
-    });
-
-    const sortedKeys = Object.keys(yearCounts).sort((a, b) => {
-      const aNum = parseInt(a.replace(/\D/g, '')) || 0;
-      const bNum = parseInt(b.replace(/\D/g, '')) || 0;
-      return aNum - bNum;
-    });
-
-    return sortedKeys.map((key) => ({
-      decade: key,
-      count: yearCounts[key],
-    }));
+  const formatCurrency = (value: number) => {
+    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const getCameraTypeStats = () => {
-    const typeCounts: { [key: string]: number } = {};
-    cameras.forEach((camera) => {
-      typeCounts[camera.camera_type] = (typeCounts[camera.camera_type] || 0) + 1;
-    });
-    return Object.entries(typeCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+  const getConditionColor = (condition: string) => {
+    switch (condition) {
+      case 'Mint': return '#27AE60';
+      case 'Excellent': return '#2ECC71';
+      case 'Good': return '#F39C12';
+      case 'Fair': return '#E67E22';
+      case 'For Parts': return '#E74C3C';
+      default: return theme.textSecondary;
+    }
   };
 
-  const getBrandStats = () => {
-    const brandCounts: { [key: string]: number } = {};
-    cameras.forEach((camera) => {
-      brandCounts[camera.brand] = (brandCounts[camera.brand] || 0) + 1;
-    });
-    return Object.entries(brandCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+  const renderBarChart = (data: { [key: string]: number }, colorFn?: (key: string) => string) => {
+    const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+    const maxValue = Math.max(...entries.map(([_, v]) => v), 1);
+
+    return entries.slice(0, 8).map(([key, value], index) => (
+      <View key={key} style={styles.barRow}>
+        <Text style={[styles.barLabel, { color: theme.text }]} numberOfLines={1}>
+          {key}
+        </Text>
+        <View style={styles.barContainer}>
+          <View
+            style={[
+              styles.bar,
+              {
+                width: `${(value / maxValue) * 100}%`,
+                backgroundColor: colorFn ? colorFn(key) : theme.primary,
+              },
+            ]}
+          />
+        </View>
+        <Text style={[styles.barValue, { color: theme.textSecondary }]}>{value}</Text>
+      </View>
+    ));
   };
 
-  const yearData = getYearHistogramData();
-  const typeStats = getCameraTypeStats();
-  const brandStats = getBrandStats();
-  const maxYearCount = Math.max(...yearData.map(d => d.count), 1);
+  const renderDecadeHistogram = () => {
+    if (!stats || Object.keys(stats.by_decade).length === 0) {
+      return (
+        <View style={styles.emptyChart}>
+          <Ionicons name="bar-chart-outline" size={48} color={theme.textMuted} />
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+            No year data available
+          </Text>
+        </View>
+      );
+    }
 
-  const barColors = [theme.primary, theme.primary + 'CC', theme.primary + '99', theme.primary + '77', theme.primary + '55', theme.primary + '44'];
+    const decades = Object.entries(stats.by_decade).sort((a, b) => a[0].localeCompare(b[0]));
+    const maxCount = Math.max(...decades.map(([_, count]) => count), 1);
+    const barWidth = Math.max(40, (screenWidth - 80) / decades.length - 8);
+
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={styles.histogram}>
+          {decades.map(([decade, count], index) => (
+            <View key={decade} style={styles.histogramBar}>
+              <Text style={[styles.histogramCount, { color: theme.text }]}>{count}</Text>
+              <View
+                style={[
+                  styles.histogramBarFill,
+                  {
+                    height: Math.max(20, (count / maxCount) * 120),
+                    width: barWidth,
+                    backgroundColor: theme.primary,
+                  },
+                ]}
+              />
+              <Text style={[styles.histogramLabel, { color: theme.textSecondary }]}>{decade}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    );
+  };
 
   if (loading) {
     return (
@@ -141,189 +171,238 @@ export default function StatsScreen() {
     );
   }
 
+  if (!stats) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <Ionicons name="alert-circle" size={64} color={theme.textMuted} />
+        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>Failed to load statistics</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
       refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={theme.primary}
-        />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
       }
       showsVerticalScrollIndicator={false}
     >
-      {/* Summary Card */}
-      <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
-        <View style={styles.summaryItem}>
-          <Ionicons name="camera" size={32} color={theme.primary} />
-          <Text style={[styles.summaryNumber, { color: theme.text }]}>{cameras.length}</Text>
-          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Total Cameras</Text>
-        </View>
-        <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
-        <View style={styles.summaryItem}>
-          <Ionicons name="calendar" size={32} color={theme.primary} />
-          <Text style={[styles.summaryNumber, { color: theme.text }]}>{yearData.length}</Text>
-          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Decades</Text>
-        </View>
-        <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
-        <View style={styles.summaryItem}>
-          <Ionicons name="business" size={32} color={theme.primary} />
-          <Text style={[styles.summaryNumber, { color: theme.text }]}>{new Set(cameras.map(c => c.brand)).size}</Text>
-          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Brands</Text>
-        </View>
+      {/* Section Tabs */}
+      <View style={[styles.tabContainer, { backgroundColor: theme.surface }]}>
+        {(['overview', 'value', 'breakdown'] as const).map((section) => (
+          <TouchableOpacity
+            key={section}
+            style={[
+              styles.tab,
+              activeSection === section && { borderBottomColor: theme.primary, borderBottomWidth: 2 }
+            ]}
+            onPress={() => setActiveSection(section)}
+          >
+            <Text style={[
+              styles.tabText,
+              { color: activeSection === section ? theme.primary : theme.textSecondary }
+            ]}>
+              {section === 'overview' ? 'Overview' : section === 'value' ? 'Value' : 'Breakdown'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Year Histogram */}
-      <View style={[styles.chartCard, { backgroundColor: theme.surface }]}>
-        <View style={styles.chartHeader}>
-          <Ionicons name="bar-chart" size={24} color={theme.primary} />
-          <Text style={[styles.chartTitle, { color: theme.text }]}>Cameras by Decade</Text>
+      {/* Overview Section */}
+      {activeSection === 'overview' && (
+        <View style={styles.section}>
+          {/* Summary Cards */}
+          <View style={styles.summaryRow}>
+            <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
+              <Ionicons name="camera" size={28} color={theme.primary} />
+              <Text style={[styles.summaryValue, { color: theme.text }]}>{stats.total_cameras}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Cameras</Text>
+            </View>
+            <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
+              <Ionicons name="heart" size={28} color="#E74C3C" />
+              <Text style={[styles.summaryValue, { color: theme.text }]}>{stats.total_wishlist}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Wishlist</Text>
+            </View>
+            <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
+              <Ionicons name="cube" size={28} color="#9B59B6" />
+              <Text style={[styles.summaryValue, { color: theme.text }]}>{stats.total_accessories}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Accessories</Text>
+            </View>
+          </View>
+
+          {/* Decade Histogram */}
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="calendar" size={20} color={theme.primary} />
+              <Text style={[styles.cardTitle, { color: theme.text }]}>Cameras by Decade</Text>
+            </View>
+            {renderDecadeHistogram()}
+          </View>
+
+          {/* Top Brands */}
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="ribbon" size={20} color={theme.primary} />
+              <Text style={[styles.cardTitle, { color: theme.text }]}>Top Brands</Text>
+            </View>
+            {Object.keys(stats.by_brand).length > 0 ? (
+              renderBarChart(stats.by_brand)
+            ) : (
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No brand data</Text>
+            )}
+          </View>
+
+          {/* Condition Distribution */}
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="shield-checkmark" size={20} color={theme.primary} />
+              <Text style={[styles.cardTitle, { color: theme.text }]}>Condition</Text>
+            </View>
+            {Object.keys(stats.by_condition).length > 0 ? (
+              renderBarChart(stats.by_condition, getConditionColor)
+            ) : (
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No condition data recorded</Text>
+            )}
+          </View>
         </View>
-        
-        {yearData.length > 0 ? (
-          <View style={styles.histogramContainer}>
-            <View style={styles.yAxis}>
-              {[...Array(maxYearCount + 1)].map((_, i) => (
-                <Text key={i} style={[styles.yAxisLabel, { color: theme.textMuted }]}>
-                  {maxYearCount - i}
+      )}
+
+      {/* Value Section */}
+      {activeSection === 'value' && (
+        <View style={styles.section}>
+          {/* Total Value Card */}
+          <View style={[styles.valueHeroCard, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.valueHeroLabel, { color: theme.textSecondary }]}>Total Collection Value</Text>
+            <Text style={[styles.valueHeroAmount, { color: theme.primary }]}>
+              {formatCurrency(stats.total_estimated_value)}
+            </Text>
+            <Text style={[styles.valueHeroSubtext, { color: theme.textSecondary }]}>
+              {stats.cameras_with_value_count} of {stats.total_cameras} cameras valued
+            </Text>
+          </View>
+
+          {/* Value Stats Row */}
+          <View style={styles.valueStatsRow}>
+            <View style={[styles.valueStatCard, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.valueStatLabel, { color: theme.textSecondary }]}>Total Paid</Text>
+              <Text style={[styles.valueStatAmount, { color: theme.text }]}>
+                {formatCurrency(stats.total_purchase_price)}
+              </Text>
+            </View>
+            <View style={[styles.valueStatCard, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.valueStatLabel, { color: theme.textSecondary }]}>Appreciation</Text>
+              <Text style={[
+                styles.valueStatAmount,
+                { color: stats.value_appreciation >= 0 ? '#27AE60' : '#E74C3C' }
+              ]}>
+                {stats.value_appreciation >= 0 ? '+' : ''}{formatCurrency(stats.value_appreciation)}
+              </Text>
+              {stats.appreciation_percentage !== 0 && (
+                <Text style={[
+                  styles.valueStatPercent,
+                  { color: stats.appreciation_percentage >= 0 ? '#27AE60' : '#E74C3C' }
+                ]}>
+                  ({stats.appreciation_percentage >= 0 ? '+' : ''}{stats.appreciation_percentage.toFixed(1)}%)
                 </Text>
-              ))}
-            </View>
-            
-            <View style={styles.barsContainer}>
-              <View style={styles.gridLines}>
-                {[...Array(maxYearCount + 1)].map((_, i) => (
-                  <View key={i} style={[styles.gridLine, { backgroundColor: theme.border }]} />
-                ))}
-              </View>
-              
-              <View style={styles.bars}>
-                {yearData.map((item, index) => {
-                  const barHeight = (item.count / maxYearCount) * 150;
-                  return (
-                    <View key={item.decade} style={styles.barWrapper}>
-                      <Text style={[styles.barValue, { color: theme.primary }]}>{item.count}</Text>
-                      <View 
-                        style={[
-                          styles.bar, 
-                          { 
-                            height: barHeight,
-                            backgroundColor: barColors[index % barColors.length],
-                          }
-                        ]} 
-                      />
-                      <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{item.decade}</Text>
-                    </View>
-                  );
-                })}
-              </View>
+              )}
             </View>
           </View>
-        ) : (
-          <View style={styles.emptyChart}>
-            <Ionicons name="analytics-outline" size={48} color={theme.textMuted} />
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No year data available</Text>
-            <Text style={[styles.emptySubtext, { color: theme.textMuted }]}>Add years to your cameras to see the histogram</Text>
+
+          {/* Average Value */}
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="calculator" size={20} color={theme.primary} />
+              <Text style={[styles.cardTitle, { color: theme.text }]}>Average Camera Value</Text>
+            </View>
+            <Text style={[styles.avgValue, { color: theme.text }]}>
+              {formatCurrency(stats.average_camera_value)}
+            </Text>
           </View>
-        )}
-      </View>
 
-      {/* Camera Types */}
-      <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
-        <View style={styles.chartHeader}>
-          <Ionicons name="aperture" size={24} color={theme.primary} />
-          <Text style={[styles.chartTitle, { color: theme.text }]}>Top Camera Types</Text>
-        </View>
-        {typeStats.length > 0 ? (
-          typeStats.map(([type, count], index) => (
-            <View key={type} style={styles.statRow}>
-              <View style={[styles.statRank, { backgroundColor: theme.surfaceLight }]}>
-                <Text style={[styles.rankText, { color: theme.primary }]}>{index + 1}</Text>
-              </View>
-              <Text style={[styles.statName, { color: theme.text }]} numberOfLines={1}>{type}</Text>
-              <View style={[styles.statBarContainer, { backgroundColor: theme.surfaceLight }]}>
-                <View 
-                  style={[
-                    styles.statBar, 
-                    { width: `${(count / cameras.length) * 100}%`, backgroundColor: theme.primary }
-                  ]} 
-                />
-              </View>
-              <Text style={[styles.statCount, { color: theme.primary }]}>{count}</Text>
+          {/* Value by Type */}
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="pie-chart" size={20} color={theme.primary} />
+              <Text style={[styles.cardTitle, { color: theme.text }]}>Value by Camera Type</Text>
             </View>
-          ))
-        ) : (
-          <Text style={[styles.noDataText, { color: theme.textMuted }]}>No cameras in collection</Text>
-        )}
-      </View>
+            {Object.keys(stats.by_type_value).length > 0 ? (
+              Object.entries(stats.by_type_value)
+                .filter(([_, value]) => value > 0)
+                .sort((a, b) => b[1] - a[1])
+                .map(([type, value]) => (
+                  <View key={type} style={styles.typeValueRow}>
+                    <Text style={[styles.typeValueLabel, { color: theme.text }]}>{type}</Text>
+                    <Text style={[styles.typeValueAmount, { color: theme.primary }]}>{formatCurrency(value)}</Text>
+                  </View>
+                ))
+            ) : (
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No value data recorded</Text>
+            )}
+          </View>
 
-      {/* Brands */}
-      <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
-        <View style={styles.chartHeader}>
-          <Ionicons name="business" size={24} color={theme.primary} />
-          <Text style={[styles.chartTitle, { color: theme.text }]}>Top Brands</Text>
-        </View>
-        {brandStats.length > 0 ? (
-          brandStats.map(([brand, count], index) => (
-            <View key={brand} style={styles.statRow}>
-              <View style={[styles.statRank, { backgroundColor: theme.surfaceLight }]}>
-                <Text style={[styles.rankText, { color: theme.primary }]}>{index + 1}</Text>
-              </View>
-              <Text style={[styles.statName, { color: theme.text }]} numberOfLines={1}>{brand}</Text>
-              <View style={[styles.statBarContainer, { backgroundColor: theme.surfaceLight }]}>
-                <View 
-                  style={[
-                    styles.statBar, 
-                    { width: `${(count / cameras.length) * 100}%`, backgroundColor: theme.primary }
-                  ]} 
-                />
-              </View>
-              <Text style={[styles.statCount, { color: theme.primary }]}>{count}</Text>
+          {/* Most Valuable Cameras */}
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="trophy" size={20} color="#F1C40F" />
+              <Text style={[styles.cardTitle, { color: theme.text }]}>Most Valuable Cameras</Text>
             </View>
-          ))
-        ) : (
-          <Text style={[styles.noDataText, { color: theme.textMuted }]}>No cameras in collection</Text>
-        )}
-      </View>
-
-      {/* Film Formats */}
-      <View style={[styles.statsCard, { backgroundColor: theme.surface }]}>
-        <View style={styles.chartHeader}>
-          <Ionicons name="film" size={24} color={theme.primary} />
-          <Text style={[styles.chartTitle, { color: theme.text }]}>Film Formats</Text>
+            {stats.top_valuable_cameras.length > 0 ? (
+              stats.top_valuable_cameras.map((camera, index) => (
+                <TouchableOpacity
+                  key={camera.id}
+                  style={styles.valuableCamera}
+                  onPress={() => router.push(`/camera/${camera.id}`)}
+                >
+                  <View style={[styles.rankBadge, { backgroundColor: index === 0 ? '#F1C40F' : index === 1 ? '#BDC3C7' : index === 2 ? '#CD7F32' : theme.surfaceLight }]}>
+                    <Text style={styles.rankText}>{index + 1}</Text>
+                  </View>
+                  <View style={styles.valuableCameraInfo}>
+                    <Text style={[styles.valuableCameraName, { color: theme.text }]}>{camera.name}</Text>
+                    <Text style={[styles.valuableCameraBrand, { color: theme.textSecondary }]}>{camera.brand}</Text>
+                  </View>
+                  <Text style={[styles.valuableCameraValue, { color: theme.primary }]}>
+                    {formatCurrency(camera.estimated_value)}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No cameras with values recorded</Text>
+            )}
+          </View>
         </View>
-        {cameras.length > 0 ? (
-          (() => {
-            const formatCounts: { [key: string]: number } = {};
-            cameras.forEach((camera) => {
-              formatCounts[camera.film_format] = (formatCounts[camera.film_format] || 0) + 1;
-            });
-            return Object.entries(formatCounts)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 5)
-              .map(([format, count], index) => (
-                <View key={format} style={styles.statRow}>
-                  <View style={[styles.statRank, { backgroundColor: theme.surfaceLight }]}>
-                    <Text style={[styles.rankText, { color: theme.primary }]}>{index + 1}</Text>
-                  </View>
-                  <Text style={[styles.statName, { color: theme.text }]} numberOfLines={1}>{format}</Text>
-                  <View style={[styles.statBarContainer, { backgroundColor: theme.surfaceLight }]}>
-                    <View 
-                      style={[
-                        styles.statBar, 
-                        { width: `${(count / cameras.length) * 100}%`, backgroundColor: theme.primary }
-                      ]} 
-                    />
-                  </View>
-                  <Text style={[styles.statCount, { color: theme.primary }]}>{count}</Text>
-                </View>
-              ));
-          })()
-        ) : (
-          <Text style={[styles.noDataText, { color: theme.textMuted }]}>No cameras in collection</Text>
-        )}
-      </View>
+      )}
+
+      {/* Breakdown Section */}
+      {activeSection === 'breakdown' && (
+        <View style={styles.section}>
+          {/* By Camera Type */}
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="aperture" size={20} color={theme.primary} />
+              <Text style={[styles.cardTitle, { color: theme.text }]}>By Camera Type</Text>
+            </View>
+            {Object.keys(stats.by_type).length > 0 ? (
+              renderBarChart(stats.by_type)
+            ) : (
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No data</Text>
+            )}
+          </View>
+
+          {/* By Film Format */}
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="film" size={20} color={theme.primary} />
+              <Text style={[styles.cardTitle, { color: theme.text }]}>By Film Format</Text>
+            </View>
+            {Object.keys(stats.by_format).length > 0 ? (
+              renderBarChart(stats.by_format)
+            ) : (
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No data</Text>
+            )}
+          </View>
+        </View>
+      )}
 
       <View style={styles.bottomPadding} />
     </ScrollView>
@@ -331,174 +410,51 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-  },
-  summaryCard: {
-    flexDirection: 'row',
-    margin: 16,
-    borderRadius: 16,
-    padding: 20,
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryDivider: {
-    width: 1,
-  },
-  summaryNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 8,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  chartCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  chartTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 12,
-  },
-  histogramContainer: {
-    flexDirection: 'row',
-    height: 220,
-  },
-  yAxis: {
-    width: 25,
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingRight: 8,
-    paddingBottom: 25,
-  },
-  yAxisLabel: {
-    fontSize: 11,
-  },
-  barsContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  gridLines: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 25,
-    justifyContent: 'space-between',
-  },
-  gridLine: {
-    height: 1,
-  },
-  bars: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    paddingBottom: 25,
-  },
-  barWrapper: {
-    alignItems: 'center',
-    flex: 1,
-    maxWidth: 60,
-  },
-  barValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  bar: {
-    width: 30,
-    borderRadius: 4,
-    minHeight: 4,
-  },
-  barLabel: {
-    fontSize: 11,
-    marginTop: 8,
-  },
-  emptyChart: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    marginTop: 12,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  statsCard: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statRank: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  rankText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  statName: {
-    fontSize: 13,
-    flex: 1,
-  },
-  statBarContainer: {
-    width: 60,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  statBar: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  statCount: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    width: 25,
-    textAlign: 'right',
-  },
-  noDataText: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  bottomPadding: {
-    height: 100,
-  },
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 16, fontSize: 16 },
+  tabContainer: { flexDirection: 'row', marginHorizontal: 16, marginTop: 16, borderRadius: 12, overflow: 'hidden' },
+  tab: { flex: 1, paddingVertical: 14, alignItems: 'center' },
+  tabText: { fontSize: 14, fontWeight: '600' },
+  section: { padding: 16 },
+  summaryRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  summaryCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center' },
+  summaryValue: { fontSize: 28, fontWeight: 'bold', marginTop: 8 },
+  summaryLabel: { fontSize: 12, marginTop: 4 },
+  card: { borderRadius: 16, padding: 16, marginBottom: 16 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  cardTitle: { fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  histogram: { flexDirection: 'row', alignItems: 'flex-end', paddingVertical: 8, paddingHorizontal: 8 },
+  histogramBar: { alignItems: 'center', marginHorizontal: 4 },
+  histogramBarFill: { borderRadius: 6 },
+  histogramCount: { fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  histogramLabel: { fontSize: 10, marginTop: 4 },
+  emptyChart: { alignItems: 'center', paddingVertical: 24 },
+  emptyText: { textAlign: 'center', fontSize: 14 },
+  barRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  barLabel: { width: 80, fontSize: 12 },
+  barContainer: { flex: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8, marginHorizontal: 8 },
+  bar: { height: '100%', borderRadius: 8 },
+  barValue: { width: 30, fontSize: 12, textAlign: 'right' },
+  valueHeroCard: { borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 16 },
+  valueHeroLabel: { fontSize: 14 },
+  valueHeroAmount: { fontSize: 42, fontWeight: 'bold', marginTop: 8 },
+  valueHeroSubtext: { fontSize: 13, marginTop: 8 },
+  valueStatsRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  valueStatCard: { flex: 1, borderRadius: 16, padding: 16, alignItems: 'center' },
+  valueStatLabel: { fontSize: 12 },
+  valueStatAmount: { fontSize: 20, fontWeight: 'bold', marginTop: 4 },
+  valueStatPercent: { fontSize: 12, marginTop: 2 },
+  avgValue: { fontSize: 32, fontWeight: 'bold', textAlign: 'center' },
+  typeValueRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  typeValueLabel: { fontSize: 14 },
+  typeValueAmount: { fontSize: 14, fontWeight: '600' },
+  valuableCamera: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  rankBadge: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  rankText: { fontSize: 12, fontWeight: 'bold', color: '#000' },
+  valuableCameraInfo: { flex: 1, marginLeft: 12 },
+  valuableCameraName: { fontSize: 14, fontWeight: '600' },
+  valuableCameraBrand: { fontSize: 12, marginTop: 2 },
+  valuableCameraValue: { fontSize: 14, fontWeight: '600' },
+  bottomPadding: { height: 100 },
 });
