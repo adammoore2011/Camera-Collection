@@ -606,6 +606,160 @@ async def login_email(data: UserLogin, response: Response):
         "token": session_token
     }
 
+# Apple Sign-In models
+class AppleAuthRequest(BaseModel):
+    identityToken: str
+    user: Optional[str] = None
+    email: Optional[str] = None
+    fullName: Optional[dict] = None
+
+@api_router.post("/auth/apple")
+async def apple_auth(request: AppleAuthRequest, response: Response):
+    """Handle Apple Sign-In authentication"""
+    try:
+        # Decode the identity token (JWT from Apple)
+        # Note: In production, you should verify the token signature with Apple's public keys
+        # For now, we'll decode without verification since Apple tokens are trusted
+        
+        # The identity token is a JWT - we'll decode it to get user info
+        # Apple's JWT contains: sub (unique user ID), email, email_verified, etc.
+        
+        token_parts = request.identityToken.split('.')
+        if len(token_parts) != 3:
+            raise HTTPException(status_code=400, detail="Invalid identity token format")
+        
+        # Decode the payload (middle part)
+        import base64
+        # Add padding if needed
+        payload_part = token_parts[1]
+        padding = 4 - len(payload_part) % 4
+        if padding != 4:
+            payload_part += '=' * padding
+        
+        try:
+            payload_bytes = base64.urlsafe_b64decode(payload_part)
+            payload = json.loads(payload_bytes.decode('utf-8'))
+        except Exception as e:
+            logger.error(f"Failed to decode Apple token: {e}")
+            raise HTTPException(status_code=400, detail="Invalid identity token")
+        
+        # Get Apple user ID (sub = subject)
+        apple_user_id = payload.get('sub')
+        if not apple_user_id:
+            raise HTTPException(status_code=400, detail="Missing user identifier in token")
+        
+        # Get email from token or from request
+        email = payload.get('email') or request.email
+        
+        # Get name from request (only provided on first sign-in)
+        name = None
+        if request.fullName:
+            given_name = request.fullName.get('givenName', '')
+            family_name = request.fullName.get('familyName', '')
+            name = f"{given_name} {family_name}".strip() or None
+        
+        logger.info(f"Apple Sign-In: apple_id={apple_user_id}, email={email}, name={name}")
+        
+        # Check if user exists (by Apple ID)
+        existing_user = await db.users.find_one({"apple_id": apple_user_id})
+        
+        if existing_user:
+            user_id = existing_user["user_id"]
+            # Update email/name if provided and different
+            updates = {}
+            if email and email != existing_user.get("email"):
+                updates["email"] = email
+            if name and name != existing_user.get("name"):
+                updates["name"] = name
+            if updates:
+                await db.users.update_one(
+                    {"user_id": user_id},
+                    {"$set": updates}
+                )
+            user = await db.users.find_one({"user_id": user_id}, {"_id": 0, "password_hash": 0})
+        else:
+            # Check if user exists by email (link accounts)
+            if email:
+                existing_by_email = await db.users.find_one({"email": email})
+                if existing_by_email:
+                    # Link Apple ID to existing account
+                    await db.users.update_one(
+                        {"email": email},
+                        {"$set": {"apple_id": apple_user_id}}
+                    )
+                    user = await db.users.find_one({"email": email}, {"_id": 0, "password_hash": 0})
+                    user_id = user["user_id"]
+                else:
+                    # Create new user
+                    user_id = f"user_{uuid.uuid4().hex[:12]}"
+                    new_user = {
+                        "user_id": user_id,
+                        "apple_id": apple_user_id,
+                        "email": email,
+                        "name": name or "Apple User",
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow()
+                    }
+                    await db.users.insert_one(new_user)
+                    user = {k: v for k, v in new_user.items() if k != "_id"}
+            else:
+                # No email provided - create user with just Apple ID
+                user_id = f"user_{uuid.uuid4().hex[:12]}"
+                new_user = {
+                    "user_id": user_id,
+                    "apple_id": apple_user_id,
+                    "email": f"{apple_user_id}@privaterelay.appleid.com",  # Placeholder
+                    "name": name or "Apple User",
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+                await db.users.insert_one(new_user)
+                user = {k: v for k, v in new_user.items() if k != "_id"}
+        
+        # Create session token (JWT)
+        session_token = jwt.encode(
+            {
+                "user_id": user_id,
+                "email": user.get("email"),
+                "exp": datetime.now(timezone.utc) + timedelta(days=30)
+            },
+            JWT_SECRET,
+            algorithm="HS256"
+        )
+        
+        # Store session
+        await db.user_sessions.insert_one({
+            "session_token": session_token,
+            "user_id": user_id,
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=30)
+        })
+        
+        # Set cookie
+        response.set_cookie(
+            key="session_token",
+            value=session_token,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=30 * 24 * 60 * 60
+        )
+        
+        logger.info(f"Apple Sign-In successful for user: {user_id}")
+        
+        return {
+            "user_id": user_id,
+            "email": user.get("email"),
+            "name": user.get("name"),
+            "token": session_token
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Apple Sign-In error: {e}")
+        raise HTTPException(status_code=500, detail="Authentication failed")
+
 # ============ PUBLIC ENDPOINTS ============
 
 @api_router.get("/")

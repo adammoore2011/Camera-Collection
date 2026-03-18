@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '../src/contexts/AuthContext';
 import { useTheme } from '../src/contexts/ThemeContext';
 
@@ -21,7 +22,7 @@ const iconDark = require('../assets/images/icon-dark.jpg');
 type AuthMode = 'welcome' | 'login' | 'register';
 
 export default function LoginScreen() {
-  const { login, loginWithEmail, register, isLoading } = useAuth();
+  const { login, loginWithEmail, loginWithApple, register, isLoading, isAppleAuthAvailable } = useAuth();
   const { theme } = useTheme();
   
   const [mode, setMode] = useState<AuthMode>('welcome');
@@ -137,6 +138,23 @@ export default function LoginScreen() {
               </>
             )}
           </TouchableOpacity>
+
+          {/* Apple Sign-In Button - Only shown on iOS */}
+          {Platform.OS === 'ios' && isAppleAuthAvailable && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={12}
+              style={styles.appleButton}
+              onPress={async () => {
+                setError(null);
+                const result = await loginWithApple();
+                if (!result.success) {
+                  setError(result.error || 'Apple Sign-In failed');
+                }
+              }}
+            />
+          )}
 
           <Text style={[styles.disclaimer, { color: theme.textMuted }]}>
             Sign in to sync your collection across all your devices
@@ -492,5 +510,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 10,
+  },
+  appleButton: {
+    width: '100%',
+    height: 50,
+    marginTop: 16,
   },
 });

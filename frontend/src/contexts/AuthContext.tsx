@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { API_URL, SESSION_TOKEN_KEY } from '../config';
@@ -25,9 +26,11 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: () => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithApple: () => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  isAppleAuthAvailable: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,6 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
+
+  // Check if Apple Auth is available (only on iOS)
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      AppleAuthentication.isAvailableAsync().then(setIsAppleAuthAvailable);
+    }
+  }, []);
 
   // Check authentication status
   const checkAuth = useCallback(async () => {
@@ -365,6 +376,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Login with Apple
+  const loginWithApple = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setIsLoading(true);
+      console.log('[AUTH] Starting Apple Sign-In...');
+      
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      
+      console.log('[AUTH] Apple credential received');
+      console.log('[AUTH] User ID:', credential.user);
+      console.log('[AUTH] Email:', credential.email);
+      console.log('[AUTH] Full Name:', credential.fullName);
+      
+      // Send to backend
+      const response = await fetch(`${API_URL}/api/auth/apple`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identityToken: credential.identityToken,
+          user: credential.user,
+          email: credential.email,
+          fullName: credential.fullName,
+        }),
+      });
+      
+      console.log('[AUTH] Apple auth response status:', response.status);
+      const data = await response.json();
+      console.log('[AUTH] Apple auth response:', JSON.stringify(data).substring(0, 200));
+      
+      if (response.ok) {
+        const token = data.token;
+        console.log('[AUTH] Got token from Apple auth');
+        
+        // Save to AsyncStorage
+        await AsyncStorage.setItem(SESSION_TOKEN_KEY, token);
+        console.log('[AUTH] Token saved to AsyncStorage');
+        
+        // Update state
+        setSessionToken(token);
+        setUser({
+          user_id: data.user_id,
+          email: data.email,
+          name: data.name,
+          picture: data.picture,
+        });
+        
+        setIsLoading(false);
+        return { success: true };
+      } else {
+        console.log('[AUTH] Apple auth failed:', data.detail);
+        setIsLoading(false);
+        return { success: false, error: data.detail || 'Apple Sign-In failed' };
+      }
+    } catch (error: any) {
+      console.error('[AUTH] Apple Sign-In error:', error);
+      setIsLoading(false);
+      
+      if (error.code === 'ERR_REQUEST_CANCELED') {
+        return { success: false, error: 'Sign in was cancelled' };
+      }
+      
+      return { success: false, error: 'Apple Sign-In failed. Please try again.' };
+    }
+  }, []);
+
   // Logout
   const logout = async () => {
     try {
@@ -396,9 +479,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         loginWithEmail,
+        loginWithApple,
         register,
         logout,
         checkAuth,
+        isAppleAuthAvailable,
       }}
     >
       {children}

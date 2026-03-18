@@ -10,6 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.vintagecamera.collection",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of your vintage cameras",
         "NSPhotoLibraryUsageDescription": "Add camera photos from your library"
