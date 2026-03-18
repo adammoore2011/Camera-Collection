@@ -43,18 +43,7 @@
           "backgroundColor": "#000000"
         }
       ],
-      "expo-web-browser",
-      [
-        "expo-alternate-app-icons",
-        {
-          "icons": {
-            "pink": "./assets/images/icon-pink.png",
-            "blue": "./assets/images/icon-blue.png",
-            "brown": "./assets/images/icon-brown.png",
-            "dark": "./assets/images/icon-dark.png"
-          }
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

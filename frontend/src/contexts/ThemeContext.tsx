@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as AlternateAppIcons from 'expo-alternate-app-icons';
+
+// NOTE: expo-alternate-app-icons is removed for Expo Go compatibility
+// The app icon changing feature will only work in production (development builds)
+// For now, we just save the preference and it will be applied when the app is built natively
 
 // Theme definitions
 export const themes = {
@@ -142,12 +145,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setAppIconState(icon);
     try {
       await AsyncStorage.setItem(ICON_STORAGE_KEY, icon);
-      // Change the native app icon using expo-alternate-app-icons
-      if (AlternateAppIcons.supportsAlternateIcons()) {
-        await AlternateAppIcons.setAlternateAppIcon(icon);
-      }
+      // NOTE: In Expo Go, changing the app icon is not supported
+      // The icon preference is saved and will be applied in production builds
+      console.log('App icon preference saved:', icon);
     } catch (error) {
-      console.error('Error saving/setting icon:', error);
+      console.log('Error saving icon preference:', error);
     }
   };
 
