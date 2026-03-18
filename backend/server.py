@@ -155,10 +155,55 @@ class SessionData(BaseModel):
 # Condition options
 CONDITIONS = ["Mint", "Excellent", "Good", "Fair", "For Parts"]
 
+# Film types
+FILM_TYPES = ["Color Negative", "Black & White", "Slide/Reversal", "Instant", "Movie Film", "Other"]
+
+# Film formats for stock
+FILM_STOCK_FORMATS = ["35mm", "120/Medium Format", "4x5 Sheet", "8x10 Sheet", "110", "127", "Instant", "Super 8", "16mm", "Other"]
+
 class ServiceHistoryEntry(BaseModel):
     date: str
     description: str
     cost: Optional[float] = None
+
+# ============ FILM STOCK MODEL ============
+
+class FilmStockBase(BaseModel):
+    name: str  # e.g., "Kodak Portra 400"
+    brand: str  # e.g., "Kodak"
+    film_type: str  # Color Negative, B&W, Slide, etc.
+    iso: Optional[int] = None  # e.g., 400
+    format: str  # 35mm, 120, etc.
+    quantity: int = 1  # Number of rolls
+    expiration_date: Optional[str] = None  # YYYY-MM or YYYY-MM-DD
+    storage_location: Optional[str] = None  # e.g., "Freezer", "Fridge"
+    notes: Optional[str] = None
+    favorite_cameras: Optional[List[str]] = None  # Camera IDs this film works well with
+
+class FilmStock(FilmStockBase):
+    id: str
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+
+# ============ SHOOTING LOG MODEL ============
+
+class ShootingLogBase(BaseModel):
+    date: str  # Date of shoot
+    camera_id: Optional[str] = None  # Which camera was used
+    camera_name: Optional[str] = None  # Camera name for display
+    film_stock_id: Optional[str] = None  # Which film was used
+    film_name: Optional[str] = None  # Film name for display
+    location: Optional[str] = None  # Where the shoot took place
+    shots_taken: Optional[int] = None  # Number of shots/frames
+    notes: Optional[str] = None
+    weather: Optional[str] = None  # Sunny, Cloudy, etc.
+    rating: Optional[int] = None  # 1-5 rating for the session
+
+class ShootingLog(ShootingLogBase):
+    id: str
+    user_id: str
+    created_at: datetime
 
 class CameraBase(BaseModel):
     name: str
@@ -818,7 +863,253 @@ async def get_options():
         "camera_types": CAMERA_TYPES,
         "film_formats": FILM_FORMATS,
         "accessory_types": ACCESSORY_TYPES,
-        "conditions": CONDITIONS
+        "conditions": CONDITIONS,
+        "film_types": FILM_TYPES,
+        "film_stock_formats": FILM_STOCK_FORMATS
+    }
+
+# ============ FILM STOCK ENDPOINTS ============
+
+@api_router.get("/film-stock")
+async def get_film_stock(request: Request):
+    """Get all film stock for the user"""
+    user = await get_user_or_device(request)
+    
+    cursor = db.film_stock.find({"user_id": user["user_id"]})
+    film_stock = []
+    async for stock in cursor:
+        film_stock.append({
+            "id": str(stock["_id"]),
+            "name": stock["name"],
+            "brand": stock["brand"],
+            "film_type": stock["film_type"],
+            "iso": stock.get("iso"),
+            "format": stock["format"],
+            "quantity": stock.get("quantity", 1),
+            "expiration_date": stock.get("expiration_date"),
+            "storage_location": stock.get("storage_location"),
+            "notes": stock.get("notes"),
+            "favorite_cameras": stock.get("favorite_cameras", []),
+            "created_at": stock.get("created_at"),
+            "updated_at": stock.get("updated_at")
+        })
+    
+    return film_stock
+
+@api_router.post("/film-stock")
+async def create_film_stock(request: Request, stock: FilmStockBase):
+    """Add new film stock"""
+    user = await get_user_or_device(request)
+    
+    now = datetime.utcnow()
+    stock_dict = {
+        "user_id": user["user_id"],
+        "name": stock.name,
+        "brand": stock.brand,
+        "film_type": stock.film_type,
+        "iso": stock.iso,
+        "format": stock.format,
+        "quantity": stock.quantity,
+        "expiration_date": stock.expiration_date,
+        "storage_location": stock.storage_location,
+        "notes": stock.notes,
+        "favorite_cameras": stock.favorite_cameras or [],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    result = await db.film_stock.insert_one(stock_dict)
+    return {"id": str(result.inserted_id), "message": "Film stock added"}
+
+@api_router.get("/film-stock/{stock_id}")
+async def get_film_stock_by_id(stock_id: str, request: Request):
+    """Get a specific film stock item"""
+    user = await get_user_or_device(request)
+    
+    stock = await db.film_stock.find_one({
+        "_id": ObjectId(stock_id),
+        "user_id": user["user_id"]
+    })
+    
+    if not stock:
+        raise HTTPException(status_code=404, detail="Film stock not found")
+    
+    return {
+        "id": str(stock["_id"]),
+        "name": stock["name"],
+        "brand": stock["brand"],
+        "film_type": stock["film_type"],
+        "iso": stock.get("iso"),
+        "format": stock["format"],
+        "quantity": stock.get("quantity", 1),
+        "expiration_date": stock.get("expiration_date"),
+        "storage_location": stock.get("storage_location"),
+        "notes": stock.get("notes"),
+        "favorite_cameras": stock.get("favorite_cameras", []),
+        "created_at": stock.get("created_at"),
+        "updated_at": stock.get("updated_at")
+    }
+
+@api_router.put("/film-stock/{stock_id}")
+async def update_film_stock(stock_id: str, request: Request, stock: FilmStockBase):
+    """Update film stock"""
+    user = await get_user_or_device(request)
+    
+    update_data = {
+        "name": stock.name,
+        "brand": stock.brand,
+        "film_type": stock.film_type,
+        "iso": stock.iso,
+        "format": stock.format,
+        "quantity": stock.quantity,
+        "expiration_date": stock.expiration_date,
+        "storage_location": stock.storage_location,
+        "notes": stock.notes,
+        "favorite_cameras": stock.favorite_cameras or [],
+        "updated_at": datetime.utcnow()
+    }
+    
+    result = await db.film_stock.update_one(
+        {"_id": ObjectId(stock_id), "user_id": user["user_id"]},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Film stock not found")
+    
+    return {"message": "Film stock updated"}
+
+@api_router.delete("/film-stock/{stock_id}")
+async def delete_film_stock(stock_id: str, request: Request):
+    """Delete film stock"""
+    user = await get_user_or_device(request)
+    
+    result = await db.film_stock.delete_one({
+        "_id": ObjectId(stock_id),
+        "user_id": user["user_id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Film stock not found")
+    
+    return {"message": "Film stock deleted"}
+
+# ============ SHOOTING LOG ENDPOINTS ============
+
+@api_router.get("/shooting-log")
+async def get_shooting_log(request: Request):
+    """Get all shooting log entries for the user"""
+    user = await get_user_or_device(request)
+    
+    cursor = db.shooting_log.find({"user_id": user["user_id"]}).sort("date", -1)
+    logs = []
+    async for log in cursor:
+        logs.append({
+            "id": str(log["_id"]),
+            "date": log["date"],
+            "camera_id": log.get("camera_id"),
+            "camera_name": log.get("camera_name"),
+            "film_stock_id": log.get("film_stock_id"),
+            "film_name": log.get("film_name"),
+            "location": log.get("location"),
+            "shots_taken": log.get("shots_taken"),
+            "notes": log.get("notes"),
+            "weather": log.get("weather"),
+            "rating": log.get("rating"),
+            "created_at": log.get("created_at")
+        })
+    
+    return logs
+
+@api_router.post("/shooting-log")
+async def create_shooting_log(request: Request, log: ShootingLogBase):
+    """Add new shooting log entry"""
+    user = await get_user_or_device(request)
+    
+    now = datetime.utcnow()
+    log_dict = {
+        "user_id": user["user_id"],
+        "date": log.date,
+        "camera_id": log.camera_id,
+        "camera_name": log.camera_name,
+        "film_stock_id": log.film_stock_id,
+        "film_name": log.film_name,
+        "location": log.location,
+        "shots_taken": log.shots_taken,
+        "notes": log.notes,
+        "weather": log.weather,
+        "rating": log.rating,
+        "created_at": now
+    }
+    
+    result = await db.shooting_log.insert_one(log_dict)
+    
+    # If a camera was used, increment its usage count
+    if log.camera_id:
+        await db.cameras.update_one(
+            {"_id": ObjectId(log.camera_id)},
+            {"$inc": {"times_used": 1}}
+        )
+    
+    # If film stock was used, decrement quantity
+    if log.film_stock_id:
+        await db.film_stock.update_one(
+            {"_id": ObjectId(log.film_stock_id)},
+            {"$inc": {"quantity": -1}}
+        )
+    
+    return {"id": str(result.inserted_id), "message": "Shooting log added"}
+
+@api_router.delete("/shooting-log/{log_id}")
+async def delete_shooting_log(log_id: str, request: Request):
+    """Delete shooting log entry"""
+    user = await get_user_or_device(request)
+    
+    result = await db.shooting_log.delete_one({
+        "_id": ObjectId(log_id),
+        "user_id": user["user_id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Log entry not found")
+    
+    return {"message": "Log entry deleted"}
+
+@api_router.get("/shooting-stats")
+async def get_shooting_stats(request: Request):
+    """Get shooting statistics"""
+    user = await get_user_or_device(request)
+    
+    # Get all logs
+    logs = await db.shooting_log.find({"user_id": user["user_id"]}).to_list(length=1000)
+    
+    # Calculate stats
+    total_sessions = len(logs)
+    total_shots = sum(log.get("shots_taken", 0) for log in logs)
+    
+    # Most used cameras
+    camera_usage = {}
+    for log in logs:
+        cam_name = log.get("camera_name")
+        if cam_name:
+            camera_usage[cam_name] = camera_usage.get(cam_name, 0) + 1
+    
+    most_used_cameras = sorted(camera_usage.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    # Most used films
+    film_usage = {}
+    for log in logs:
+        film_name = log.get("film_name")
+        if film_name:
+            film_usage[film_name] = film_usage.get(film_name, 0) + 1
+    
+    most_used_films = sorted(film_usage.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    return {
+        "total_sessions": total_sessions,
+        "total_shots": total_shots,
+        "most_used_cameras": [{"name": name, "count": count} for name, count in most_used_cameras],
+        "most_used_films": [{"name": name, "count": count} for name, count in most_used_films]
     }
 
 # ============ STATS ENDPOINT ============

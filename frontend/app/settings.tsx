@@ -337,6 +337,49 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Film & Shooting Section */}
+      <View style={[styles.section, { backgroundColor: theme.surface }]}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="film-outline" size={24} color={theme.primary} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Film & Shooting</Text>
+        </View>
+        <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
+          Track your film stock and shooting sessions
+        </Text>
+        
+        <TouchableOpacity
+          style={[styles.exportButton, { backgroundColor: theme.surfaceLight, marginBottom: 10 }]}
+          onPress={() => router.push('/film-stock')}
+        >
+          <View style={[styles.exportIconContainer, { backgroundColor: '#FF6B6B20' }]}>
+            <Ionicons name="film" size={24} color="#FF6B6B" />
+          </View>
+          <View style={styles.exportButtonContent}>
+            <Text style={[styles.exportButtonTitle, { color: theme.text }]}>Film Stock</Text>
+            <Text style={[styles.exportButtonSubtitle, { color: theme.textSecondary }]}>
+              Track inventory & expiration dates
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.exportButton, { backgroundColor: theme.surfaceLight }]}
+          onPress={() => router.push('/shooting-log')}
+        >
+          <View style={[styles.exportIconContainer, { backgroundColor: '#4ECDC420' }]}>
+            <Ionicons name="document-text" size={24} color="#4ECDC4" />
+          </View>
+          <View style={styles.exportButtonContent}>
+            <Text style={[styles.exportButtonTitle, { color: theme.text }]}>Shooting Log</Text>
+            <Text style={[styles.exportButtonSubtitle, { color: theme.textSecondary }]}>
+              Log sessions & track camera usage
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+        </TouchableOpacity>
+      </View>
+
       {/* Export & Backup Section */}
       <View style={[styles.section, { backgroundColor: theme.surface }]}>
         <View style={styles.sectionHeader}>

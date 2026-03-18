@@ -160,6 +160,20 @@ function TabLayoutContent() {
           headerTitle: 'Camera Database',
         }}
       />
+      <Tabs.Screen
+        name="film-stock"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="shooting-log"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 }
