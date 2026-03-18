@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,19 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
+  Share,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, themes, ThemeName } from '../src/contexts/ThemeContext';
 import { useAuth } from '../src/contexts/AuthContext';
+
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
 const iconPink = require('../assets/images/icon-pink.jpg');
 const iconBlue = require('../assets/images/icon-blue.jpg');
@@ -29,6 +38,12 @@ const iconOptions: { key: IconKey; label: string; image: any }[] = [
 export default function SettingsScreen() {
   const { theme, themeName, setThemeName, appIcon, setAppIcon } = useTheme();
   const { user, logout } = useAuth();
+  const [exporting, setExporting] = useState(false);
+
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
 
   const themeOptions: { key: ThemeName; description: string }[] = [
     { key: 'dark', description: 'Classic dark mode' },
@@ -46,6 +61,86 @@ export default function SettingsScreen() {
         { text: 'Sign Out', style: 'destructive', onPress: logout },
       ]
     );
+  };
+
+  const exportAsJSON = async () => {
+    try {
+      setExporting(true);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_URL}/api/export/collection`, { headers });
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const data = await response.json();
+      const jsonString = JSON.stringify(data, null, 2);
+      
+      if (Platform.OS === 'web') {
+        // For web, use native share
+        await Share.share({ message: jsonString, title: 'Camera Collection Export' });
+      } else {
+        // For mobile, save to file and share
+        const filename = `camera_collection_${new Date().toISOString().split('T')[0]}.json`;
+        const fileUri = FileSystem.documentDirectory + filename;
+        await FileSystem.writeAsStringAsync(fileUri, jsonString);
+        
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/json',
+            dialogTitle: 'Export Collection',
+          });
+        } else {
+          Alert.alert('Export Complete', `File saved as ${filename}`);
+        }
+      }
+      
+      Alert.alert('Success', `Exported ${data.cameras_count} cameras, ${data.wishlist_count} wishlist items, and ${data.accessories_count} accessories`);
+    } catch (error) {
+      console.error('Export error:', error);
+      Alert.alert('Error', 'Failed to export collection');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportAsCSV = async () => {
+    try {
+      setExporting(true);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`${API_URL}/api/export/csv`, { headers });
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const data = await response.json();
+      
+      if (Platform.OS === 'web') {
+        await Share.share({ message: data.csv_content, title: 'Camera Collection CSV' });
+      } else {
+        const fileUri = FileSystem.documentDirectory + data.filename;
+        await FileSystem.writeAsStringAsync(fileUri, data.csv_content);
+        
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Export Collection CSV',
+          });
+        } else {
+          Alert.alert('Export Complete', `File saved as ${data.filename}`);
+        }
+      }
+      
+      Alert.alert('Success', `Exported ${data.cameras_count} cameras to CSV`);
+    } catch (error) {
+      console.error('Export error:', error);
+      Alert.alert('Error', 'Failed to export collection');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -164,6 +259,65 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             );
           })}
+        </View>
+      </View>
+
+      {/* Export & Backup Section */}
+      <View style={[styles.section, { backgroundColor: theme.surface }]}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="download-outline" size={24} color={theme.primary} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Export & Backup</Text>
+        </View>
+        <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
+          Export your collection for backup or sharing
+        </Text>
+        
+        <View style={styles.exportOptions}>
+          <TouchableOpacity
+            style={[styles.exportButton, { backgroundColor: theme.surfaceLight }]}
+            onPress={exportAsJSON}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <>
+                <View style={[styles.exportIconContainer, { backgroundColor: theme.primary + '20' }]}>
+                  <Ionicons name="code-slash" size={24} color={theme.primary} />
+                </View>
+                <View style={styles.exportButtonContent}>
+                  <Text style={[styles.exportButtonTitle, { color: theme.text }]}>Export as JSON</Text>
+                  <Text style={[styles.exportButtonSubtitle, { color: theme.textSecondary }]}>
+                    Full backup including all data
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.exportButton, { backgroundColor: theme.surfaceLight }]}
+            onPress={exportAsCSV}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <>
+                <View style={[styles.exportIconContainer, { backgroundColor: theme.success + '20' }]}>
+                  <Ionicons name="document-text" size={24} color={theme.success || '#27AE60'} />
+                </View>
+                <View style={styles.exportButtonContent}>
+                  <Text style={[styles.exportButtonTitle, { color: theme.text }]}>Export as CSV</Text>
+                  <Text style={[styles.exportButtonSubtitle, { color: theme.textSecondary }]}>
+                    Open in Excel or Google Sheets
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+              </>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -361,6 +515,34 @@ const styles = StyleSheet.create({
   aboutValue: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  exportOptions: {
+    gap: 12,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+  },
+  exportIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exportButtonContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  exportButtonTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  exportButtonSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
   bottomPadding: {
     height: 100,

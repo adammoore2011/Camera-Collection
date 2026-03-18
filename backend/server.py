@@ -160,6 +160,7 @@ class CameraBase(BaseModel):
     year: Optional[str] = None
     notes: Optional[str] = None
     image: Optional[str] = None
+    images: Optional[List[str]] = None  # Multiple images support
 
 class CameraCreate(CameraBase):
     pass
@@ -172,6 +173,7 @@ class CameraUpdate(BaseModel):
     year: Optional[str] = None
     notes: Optional[str] = None
     image: Optional[str] = None
+    images: Optional[List[str]] = None  # Multiple images support
 
 class Camera(CameraBase):
     id: str
@@ -319,6 +321,7 @@ def camera_helper(camera) -> dict:
         "year": camera.get("year"),
         "notes": camera.get("notes"),
         "image": camera.get("image"),
+        "images": camera.get("images", []),
         "created_at": camera.get("created_at", datetime.utcnow()),
         "updated_at": camera.get("updated_at", datetime.utcnow())
     }
@@ -859,6 +862,75 @@ async def delete_accessory(accessory_id: str, request: Request):
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# ============ EXPORT ENDPOINTS ============
+
+@api_router.get("/export/collection")
+async def export_collection(request: Request):
+    """Export entire collection as JSON"""
+    user = await require_auth(request)
+    
+    cameras = []
+    async for camera in db.cameras.find({"user_id": user["user_id"]}):
+        cam = camera_helper(camera)
+        # Remove base64 images for export (too large)
+        cam.pop('image', None)
+        cam.pop('images', None)
+        cameras.append(cam)
+    
+    wishlist = []
+    async for item in db.wishlist.find({"user_id": user["user_id"]}):
+        wi = wishlist_helper(item)
+        wi.pop('image', None)
+        wishlist.append(wi)
+    
+    accessories = []
+    async for acc in db.accessories.find({"user_id": user["user_id"]}):
+        a = accessory_helper(acc)
+        a.pop('image', None)
+        accessories.append(a)
+    
+    return {
+        "export_date": datetime.now(timezone.utc).isoformat(),
+        "user_email": user.get("email"),
+        "cameras": cameras,
+        "cameras_count": len(cameras),
+        "wishlist": wishlist,
+        "wishlist_count": len(wishlist),
+        "accessories": accessories,
+        "accessories_count": len(accessories)
+    }
+
+@api_router.get("/export/csv")
+async def export_csv(request: Request):
+    """Export cameras as CSV format data"""
+    user = await require_auth(request)
+    
+    cameras = []
+    async for camera in db.cameras.find({"user_id": user["user_id"]}):
+        cameras.append({
+            "name": camera.get("name", ""),
+            "brand": camera.get("brand", ""),
+            "type": camera.get("camera_type", ""),
+            "film_format": camera.get("film_format", ""),
+            "year": camera.get("year", ""),
+            "notes": camera.get("notes", "").replace("\n", " ") if camera.get("notes") else "",
+            "created_at": camera.get("created_at", "").isoformat() if camera.get("created_at") else ""
+        })
+    
+    # Create CSV content
+    headers = ["name", "brand", "type", "film_format", "year", "notes", "created_at"]
+    csv_lines = [",".join(headers)]
+    
+    for cam in cameras:
+        row = [f'"{cam.get(h, "")}"' for h in headers]
+        csv_lines.append(",".join(row))
+    
+    return {
+        "csv_content": "\n".join(csv_lines),
+        "filename": f"camera_collection_{datetime.now().strftime('%Y%m%d')}.csv",
+        "cameras_count": len(cameras)
+    }
 
 # Include the router in the main app
 app.include_router(api_router)
