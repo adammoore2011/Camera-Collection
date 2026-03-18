@@ -17,8 +17,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
+import { API_URL, SESSION_TOKEN_KEY } from '../../src/config';
 
 interface Accessory {
   id: string;

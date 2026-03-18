@@ -3,8 +3,9 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { API_URL, SESSION_TOKEN_KEY } from '../config';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+console.log('AuthContext - API_URL configured as:', API_URL);
 
 // Warm up the browser on Android for faster OAuth
 if (Platform.OS === 'android') {
@@ -30,8 +31,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

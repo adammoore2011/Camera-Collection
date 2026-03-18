@@ -18,8 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme, themes, ThemeName } from '../src/contexts/ThemeContext';
 import { useAuth } from '../src/contexts/AuthContext';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
+import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
 
 const iconPink = require('../assets/images/icon-pink.jpg');
 const iconBlue = require('../assets/images/icon-blue.jpg');

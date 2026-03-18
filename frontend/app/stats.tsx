@@ -14,8 +14,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '../src/contexts/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const SESSION_TOKEN_KEY = '@vintage_camera_session_token';
+import { API_URL, SESSION_TOKEN_KEY } from '../src/config';
 const screenWidth = Dimensions.get('window').width;
 
 interface Stats {
