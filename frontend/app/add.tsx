@@ -224,12 +224,19 @@ export default function AddCameraScreen() {
     }
 
     try {
+      console.log('[ADD] Getting auth headers...');
       const authHeaders = await getAuthHeaders();
+      console.log('[ADD] Auth headers:', JSON.stringify(authHeaders));
+      console.log('[ADD] Making POST to:', `${API_URL}${endpoint}`);
+      console.log('[ADD] Body:', JSON.stringify(body).substring(0, 200));
+      
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify(body),
       });
+
+      console.log('[ADD] Response status:', response.status);
 
       if (response.ok) {
         const successMessage = 
@@ -244,10 +251,12 @@ export default function AddCameraScreen() {
           }}
         ]);
       } else {
+        const errorText = await response.text();
+        console.log('[ADD] Error response:', errorText);
         Alert.alert('Error', 'Failed to save. Please try again.');
       }
     } catch (error) {
-      console.error('Error saving:', error);
+      console.error('[ADD] Error saving:', error);
       Alert.alert('Error', 'Failed to save. Please try again.');
     } finally {
       setSaving(false);
