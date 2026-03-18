@@ -39,11 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check authentication status
   const checkAuth = useCallback(async () => {
+    console.log('[AUTH] checkAuth called, current isLoading:', isLoading);
+    
     try {
       // First check if we have a stored session token
+      console.log('[AUTH] Checking AsyncStorage for token...');
       const storedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+      console.log('[AUTH] Stored token exists:', !!storedToken, 'length:', storedToken?.length);
       
       if (!storedToken) {
+        console.log('[AUTH] No stored token, setting user to null');
         setUser(null);
         setIsLoading(false);
         return;
@@ -52,25 +57,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionToken(storedToken);
 
       // Verify with backend
+      console.log('[AUTH] Verifying token with backend...');
       const response = await fetch(`${API_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${storedToken}`,
         },
       });
 
+      console.log('[AUTH] /api/auth/me response status:', response.status);
+
       if (response.ok) {
         const userData = await response.json();
+        console.log('[AUTH] User verified:', userData.email);
         setUser(userData);
       } else {
         // Invalid session, clear it
+        console.log('[AUTH] Token invalid, clearing...');
         await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
         setSessionToken(null);
         setUser(null);
       }
     } catch (error) {
-      console.error('Auth check error:', error);
+      console.error('[AUTH] Auth check error:', error);
       setUser(null);
     } finally {
+      console.log('[AUTH] checkAuth complete, setting isLoading to false');
       setIsLoading(false);
     }
   }, []);
@@ -236,6 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
+      console.log('[AUTH] Starting email login for:', email);
+      console.log('[AUTH] API_URL:', API_URL);
       
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
@@ -245,26 +258,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('[AUTH] Login response status:', response.status);
       const data = await response.json();
+      console.log('[AUTH] Login response data:', JSON.stringify(data).substring(0, 200));
 
       if (response.ok) {
         const token = data.token;
+        console.log('[AUTH] Got token, length:', token?.length);
+        
+        // Save to AsyncStorage
+        console.log('[AUTH] Saving token to AsyncStorage...');
         await AsyncStorage.setItem(SESSION_TOKEN_KEY, token);
+        console.log('[AUTH] Token saved to AsyncStorage');
+        
+        // Verify it was saved
+        const savedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+        console.log('[AUTH] Verified saved token length:', savedToken?.length);
+        
+        // Update state
+        console.log('[AUTH] Setting sessionToken state...');
         setSessionToken(token);
-        setUser({
+        
+        console.log('[AUTH] Setting user state...');
+        const newUser = {
           user_id: data.user_id,
           email: data.email,
           name: data.name,
           picture: data.picture,
-        });
+        };
+        setUser(newUser);
+        console.log('[AUTH] User state set:', newUser.email);
+        
         setIsLoading(false);
+        console.log('[AUTH] Login complete, isLoading set to false');
         return { success: true };
       } else {
+        console.log('[AUTH] Login failed:', data.detail);
         setIsLoading(false);
         return { success: false, error: data.detail || 'Login failed' };
       }
     } catch (error) {
-      console.error('Email login error:', error);
+      console.error('[AUTH] Email login error:', error);
       setIsLoading(false);
       return { success: false, error: 'Network error. Please try again.' };
     }
@@ -274,6 +308,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(async (email: string, password: string, name: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
+      console.log('[AUTH] Starting registration for:', email);
+      console.log('[AUTH] API_URL:', API_URL);
       
       const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
@@ -283,26 +319,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password, name }),
       });
 
+      console.log('[AUTH] Register response status:', response.status);
       const data = await response.json();
+      console.log('[AUTH] Register response data:', JSON.stringify(data).substring(0, 200));
 
       if (response.ok) {
         const token = data.token;
+        console.log('[AUTH] Got token, length:', token?.length);
+        
+        // Save to AsyncStorage
+        console.log('[AUTH] Saving token to AsyncStorage...');
         await AsyncStorage.setItem(SESSION_TOKEN_KEY, token);
+        console.log('[AUTH] Token saved to AsyncStorage');
+        
+        // Verify it was saved
+        const savedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+        console.log('[AUTH] Verified saved token length:', savedToken?.length);
+        
+        // Update state
+        console.log('[AUTH] Setting sessionToken state...');
         setSessionToken(token);
-        setUser({
+        
+        console.log('[AUTH] Setting user state...');
+        const newUser = {
           user_id: data.user_id,
           email: data.email,
           name: data.name,
           picture: data.picture,
-        });
+        };
+        setUser(newUser);
+        console.log('[AUTH] User state set:', newUser.email);
+        
         setIsLoading(false);
+        console.log('[AUTH] Registration complete, isLoading set to false');
         return { success: true };
       } else {
+        console.log('[AUTH] Registration failed:', data.detail);
         setIsLoading(false);
         return { success: false, error: data.detail || 'Registration failed' };
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('[AUTH] Registration error:', error);
       setIsLoading(false);
       return { success: false, error: 'Network error. Please try again.' };
     }
