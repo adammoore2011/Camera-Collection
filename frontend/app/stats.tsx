@@ -50,7 +50,6 @@ export default function StatsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeSection, setActiveSection] = useState<'overview' | 'value' | 'breakdown'>('overview');
 
-  };
 
   const fetchStats = async () => {
     try {

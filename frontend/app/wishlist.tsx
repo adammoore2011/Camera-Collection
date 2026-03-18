@@ -46,7 +46,6 @@ export default function WishlistScreen() {
     low: theme.priorityLow,
   };
 
-  };
 
   const fetchWishlist = async () => {
     try {

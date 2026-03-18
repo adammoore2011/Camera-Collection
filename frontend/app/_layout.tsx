@@ -4,7 +4,6 @@ import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from '../src/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
-import LoginScreen from './login';
 import AuthCallbackScreen from './auth-callback';
 
 function TabLayoutContent() {

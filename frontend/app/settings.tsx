@@ -42,7 +42,6 @@ export default function SettingsScreen() {
   const [exporting, setExporting] = useState(false);
   const router = useRouter();
 
-  };
 
   const themeOptions: { key: ThemeName; description: string }[] = [
     { key: 'dark', description: 'Classic dark mode' },
@@ -209,6 +208,56 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           ))}
         </View>
+      </View>
+
+      {/* Sync & Account Section */}
+      <View style={[styles.section, { backgroundColor: theme.surface }]}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="cloud-outline" size={24} color={theme.primary} />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Sync & Account</Text>
+        </View>
+        
+        {user ? (
+          // User is signed in
+          <>
+            <View style={[styles.accountInfo, { backgroundColor: theme.surfaceLight }]}>
+              <View style={styles.accountAvatar}>
+                <Ionicons name="person-circle" size={48} color={theme.primary} />
+              </View>
+              <View style={styles.accountDetails}>
+                <Text style={[styles.accountName, { color: theme.text }]}>{user.name || 'User'}</Text>
+                <Text style={[styles.accountEmail, { color: theme.textSecondary }]}>{user.email}</Text>
+                <Text style={[styles.syncStatus, { color: theme.success }]}>
+                  <Ionicons name="checkmark-circle" size={14} color={theme.success} /> Synced
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.signOutButton, { backgroundColor: theme.surfaceLight }]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={20} color={theme.error} />
+              <Text style={[styles.signOutText, { color: theme.error }]}>Sign Out</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          // User is not signed in
+          <>
+            <Text style={[styles.sectionDescription, { color: theme.textSecondary }]}>
+              Sign in to sync your collection across all your devices
+            </Text>
+            <TouchableOpacity
+              style={[styles.signInButton, { backgroundColor: theme.primary }]}
+              onPress={() => router.push('/login')}
+            >
+              <Ionicons name="log-in-outline" size={20} color="#fff" />
+              <Text style={styles.signInButtonText}>Sign In to Sync</Text>
+            </TouchableOpacity>
+            <Text style={[styles.localNote, { color: theme.textMuted }]}>
+              Your data is saved locally on this device
+            </Text>
+          </>
+        )}
       </View>
 
       {/* Color Scheme Section */}
@@ -572,5 +621,62 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 100,
+  },
+  // Sync & Account styles
+  accountInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  accountAvatar: {
+    marginRight: 12,
+  },
+  accountDetails: {
+    flex: 1,
+  },
+  accountName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  accountEmail: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  syncStatus: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  signOutText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  signInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    marginTop: 8,
+  },
+  signInButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  localNote: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 12,
   },
 });

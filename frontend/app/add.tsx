@@ -73,7 +73,6 @@ export default function AddCameraScreen() {
   const [showAccessoryTypeSelector, setShowAccessoryTypeSelector] = useState(false);
   const [showConditionSelector, setShowConditionSelector] = useState(false);
 
-  };
 
   useEffect(() => {
     fetchOptions();

@@ -52,7 +52,6 @@ export default function ImportScreen() {
   const [showBrandPicker, setShowBrandPicker] = useState(false);
   const [importTarget, setImportTarget] = useState<'collection' | 'wishlist'>('wishlist');
 
-  };
 
   // Fetch available brands on mount
   useEffect(() => {
