@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Production API URL - MUST be hardcoded for App Store builds
 // Expo Go uses process.env, but production builds need this hardcoded value
-const PRODUCTION_API_URL = 'https://shutter-vault.preview.emergentagent.com';
+const PRODUCTION_API_URL = 'https://lens-collection-1.preview.emergentagent.com';
 
 // Get API URL with multiple fallbacks for different environments
 export const API_URL = 

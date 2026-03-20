@@ -7,18 +7,18 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://shutter-vault.preview.emergentagent.com"
+        "EXPO_PUBLIC_BACKEND_URL": "https://lens-collection-1.preview.emergentagent.com"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://shutter-vault.preview.emergentagent.com"
+        "EXPO_PUBLIC_BACKEND_URL": "https://lens-collection-1.preview.emergentagent.com"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://shutter-vault.preview.emergentagent.com"
+        "EXPO_PUBLIC_BACKEND_URL": "https://lens-collection-1.preview.emergentagent.com"
       }
     }
   },

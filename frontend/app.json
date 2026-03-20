@@ -51,7 +51,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "backendUrl": "https://shutter-vault.preview.emergentagent.com",
+      "backendUrl": "https://lens-collection-1.preview.emergentagent.com",
       "eas": {
         "projectId": "vintage-camera-collection"
       }

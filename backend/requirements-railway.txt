@@ -1,0 +1,25 @@
+# Core Framework
+fastapi==0.110.1
+uvicorn==0.25.0
+python-multipart==0.0.22
+
+# Database
+motor==3.3.1
+pymongo==4.5.0
+
+# Authentication
+passlib==1.7.4
+python-jose==3.5.0
+bcrypt==4.1.3
+PyJWT==2.11.0
+
+# HTTP Client
+httpx==0.28.1
+
+# Web Scraping
+beautifulsoup4==4.14.3
+lxml==6.0.2
+
+# Utilities
+python-dotenv==1.2.1
+pydantic==2.12.5
