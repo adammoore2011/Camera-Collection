@@ -51,7 +51,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "backendUrl": "https://lens-collection-1.emergentagent.com",
+      "backendUrl": "",
       "eas": {
         "projectId": "vintage-camera-collection"
       }
